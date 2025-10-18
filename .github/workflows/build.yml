@@ -24,6 +24,8 @@ jobs:
         include:
           - toxenv: py313
             python: 3.13
+          - toxenv: qa
+            python: 3.13  # Add Python version for qa environment
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -57,6 +59,10 @@ jobs:
 
       - name: Install tox
         run: python -m pip install tox
+
+      - name: Create tox directories
+        run: |
+          mkdir -p .tox/${{ matrix.toxenv }}/log
 
       - name: Run tox with parameter
         run: tox -e ${{ matrix.toxenv }}
