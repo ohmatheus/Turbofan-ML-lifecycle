@@ -1,9 +1,12 @@
-def test_placeholder():
+def test_placeholder() -> None:
     assert True
 
-def test_imports():
+
+def test_imports() -> None:
     try:
-        import src.utils.config
+        from src.utils.config import config
+
+        assert config.MLFLOW_TRACKING_URI is not None
         assert True
     except ImportError:
         assert True
