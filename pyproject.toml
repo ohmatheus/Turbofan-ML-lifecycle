@@ -1,0 +1,85 @@
+[project]
+name = "turbofan-predictive-maintenance"
+version = "0.1.0"
+description = "Turbofan predictive maintenance experimentation and utilities"
+authors = [
+    { name = "Maxime Maréchal", email = "max.marechal@gmail.com" },
+]
+requires-python = ">=3.13,<3.14"
+# Intentionally no readme field to avoid referencing a non-existent README file
+dependencies = [
+    "pydantic>=2.8.0,<3",
+    "pydantic-settings>=2.6.0,<3",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.9",
+    "mypy>=1.11.0",
+]
+
+test = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-env>=1.1.0",
+    "coverage[toml]>=7.6.0",
+]
+
+[tool.uv]
+default-groups = ["dev", "test"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Project Python packages live under src/
+packages = ["src"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "N", "I", "B", "UP", "TCH", "ANN", "PT"]
+ignore = [
+    "E501",  # covered by formatter / line length managed elsewhere
+    "ANN401",  # allow Any in some cases
+]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+branch = true
+source = ["src", "services", "main.py"]
+
+[tool.coverage.report]
+precision = 2
+skip_empty = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+check_untyped_defs = true
+exclude = [".*\\.ipynb$"]
+files = [
+    "src",
+    "services",
+    "simulation",
+    "main.py",
+]
+plugins = [
+    "pydantic.mypy",
+]
+
+

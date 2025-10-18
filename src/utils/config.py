@@ -1,0 +1,17 @@
+from pathlib import Path
+
+# from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ROOT_PATH = Path(__file__).parent.parent.parent
+
+# load_dotenv()
+
+
+class TPMSettings(BaseSettings):
+    model_config = SettingsConfigDict(frozen=True)
+
+    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server` to start server
+
+
+config = TPMSettings()
