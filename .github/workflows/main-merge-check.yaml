@@ -1,0 +1,20 @@
+name: Ensure that all PRs to main come from dev
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  check_head_branch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        with:
+          script: |
+              const head_branch = process.env.HEAD_BRANCH;
+              if (head_branch != "dev") {
+                core.setFailed(`Cannot request merge to main from branches other than dev (head: ${head_branch}).`)
+              }
