@@ -1,0 +1,38 @@
+name: Auto Release to Main
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: auto-release/dev-to-main
+        base: main
+        title: "Auto-release: Merge dev to main"
+        body: |
+          Automatic release PR created from dev branch.
+          
+          This PR was automatically created when changes were pushed to dev.
+          
+          **Changes included:**
+          ${{ github.event.head_commit.message }}
+        delete-branch: true
+
+    - name: Enable auto-merge
+      run: |
+        gh pr merge --auto --squash || echo "Auto-merge failed, manual intervention required"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
