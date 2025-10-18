@@ -7,4 +7,4 @@ def print_hi(name: str) -> None:
 
 
 if __name__ == "__main__":
-    print_hi("hello world")
+    print_hi("hello worldddd")
