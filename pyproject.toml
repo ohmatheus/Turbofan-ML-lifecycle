@@ -8,9 +8,13 @@ authors = [
 requires-python = ">=3.13,<3.14"
 # Intentionally no readme field to avoid referencing a non-existent README file
 dependencies = [
+    "kaggle>=1.7.4.5",
     "pydantic>=2.8.0,<3",
     "pydantic-settings>=2.6.0,<3",
 ]
+
+[project.scripts]
+initialize = "src.scripts.download_raw_data:main"
 
 [dependency-groups]
 dev = [
