@@ -11,6 +11,8 @@ ROOT_PATH = Path(__file__).parent.parent.parent
 class TPMSettings(BaseSettings):
     model_config = SettingsConfigDict(frozen=True)
 
+    RAW_DATA_PATH: Path = ROOT_PATH / "data/raw/"
+
     MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server` to start server
 
 
