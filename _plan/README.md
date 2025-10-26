@@ -66,6 +66,30 @@ https://www.kaggle.com/datasets/behrad3d/nasa-cmaps
 - Automation: When drift exceeds thresholds, automatically trigger retraining and redeploy the new model
 - Runtime: Keep demo runtime around 10 minutes using light models and sampling
 
+```
+Phase 1: Initial training
+├─ Train on: 001_train (split into train/val)
+├─ Fit scaler on: 001_train only
+└─ Deploy model
+
+Phase 2: Production simulation (002)
+├─ Stream: 002_test samples (simulate real production)
+├─ Monitor: predictions, errors, drift metrics
+├─ Log to: Grafana for visualization
+└─ When drift detected:
+    ├─ Retrain on: 001_train + 002_train
+    ├─ Refit scaler on: 001_train + 002_train combined
+    └─ Redeploy model
+
+Phase 3: Production simulation (003)
+├─ Stream: 003_test samples
+├─ Monitor & log...
+└─ When drift detected:
+    ├─ Retrain on: 001_train + 002_train + 003_train
+    └─ Refit scaler on all accumulated training data
+
+... repeat for 004
+```
 ---
 
 ## System Architecture
