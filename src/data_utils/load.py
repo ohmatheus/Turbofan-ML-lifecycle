@@ -1,19 +1,16 @@
+import logging
 import os
 from pathlib import Path
-from kaggle.api.kaggle_api_extended import KaggleApi  # type: ignore[import-untyped]
 
 import pandas as pd
-import numpy as np
-from pathlib import Path
-
-import logging
+from kaggle.api.kaggle_api_extended import KaggleApi  # type: ignore[import-untyped]
 
 from src.utils.config import config
 
 logger = logging.getLogger(__name__)
 
+subsets = ["001", "002", "003", "004"]
 
-subsets = ['001', '002', '003', '004']
 
 def download_kaggle_dataset(dataset_name: str, download_path: Path = config.RAW_DATA_PATH) -> None:
     os.makedirs(download_path, exist_ok=True)
@@ -36,71 +33,74 @@ def download_kaggle_dataset(dataset_name: str, download_path: Path = config.RAW_
         logger.exception(f"Error downloading dataset: {e}")
 
 
-def _add_RUL_column(df, ref_rul=None):
-    train_grouped_by_unit = df.groupby(by='unit_number')
-    max_time_cycles = train_grouped_by_unit['time_cycles'].max()
-    merged = df.merge(max_time_cycles.to_frame(name='max_time_cycle'), left_on='unit_number', right_index=True)
+def _add_rul_column(df: pd.DataFrame, ref_rul: pd.DataFrame | None = None) -> pd.DataFrame:
+    train_grouped_by_unit = df.groupby(by="unit_number")
+    max_time_cycles = train_grouped_by_unit["time_cycles"].max()
+    merged = df.merge(max_time_cycles.to_frame(name="max_time_cycle"), left_on="unit_number", right_index=True)
 
     if ref_rul is not None:
         # For test data with reference RUL
         # Extract values from DataFrame (first column)
         ref_rul_values = ref_rul.iloc[:, 0]
 
-        unique_units = df['unit_number'].nunique()
+        unique_units = df["unit_number"].nunique()
         assert len(ref_rul_values) == unique_units, f"RUL count ({len(ref_rul_values)}) ≠ unique units ({unique_units})"
 
-        unit_numbers = sorted(df['unit_number'].unique())
-        rul_mapping = dict(zip(unit_numbers, ref_rul_values))
-        merged['ref_rul'] = merged['unit_number'].map(rul_mapping)
-        merged["RUL"] = merged['ref_rul'] + (merged["max_time_cycle"] - merged['time_cycles'])
+        unit_numbers = sorted(df["unit_number"].unique())
+        rul_mapping = dict(zip(unit_numbers, ref_rul_values, strict=True))
+        merged["ref_rul"] = merged["unit_number"].map(rul_mapping)
+        merged["RUL"] = merged["ref_rul"] + (merged["max_time_cycle"] - merged["time_cycles"])
         merged = merged.drop(["max_time_cycle", "ref_rul"], axis=1)
     else:
         # For training data
-        merged["RUL"] = merged["max_time_cycle"] - merged['time_cycles']
+        merged["RUL"] = merged["max_time_cycle"] - merged["time_cycles"]
         merged = merged.drop("max_time_cycle", axis=1)
 
     return merged
 
 
 def prepare_raw_data() -> dict[str, dict[str, pd.DataFrame]]:
-    index_names = ['unit_number', 'time_cycles']
-    setting_names = ['setting_1', 'setting_2', 'setting_3']
-    sensor_names = ['s_{}'.format(i+1) for i in range(0,21)]
+    index_names = ["unit_number", "time_cycles"]
+    setting_names = ["setting_1", "setting_2", "setting_3"]
+    sensor_names = [f"s_{i + 1}" for i in range(0, 21)]
     col_names = index_names + setting_names + sensor_names
 
-    raw_data_path = config.RAW_DATA_PATH / 'CMaps/'
+    raw_data_path = config.RAW_DATA_PATH / "CMaps/"
 
     datasets = {}
 
     for fd_num in subsets:
         datasets[fd_num] = {
-            'train': pd.read_csv(raw_data_path / f'train_FD{fd_num}.txt', sep=r'\s+', header=None, index_col=False,
-                                 names=col_names),
-            'test': pd.read_csv(raw_data_path / f'test_FD{fd_num}.txt', sep=r'\s+', header=None, index_col=False,
-                                names=col_names),
-            'rul': pd.read_csv(raw_data_path / f'RUL_FD{fd_num}.txt', sep=r'\s+', header=None, index_col=False,
-                               names=['RUL'])
+            "train": pd.read_csv(
+                raw_data_path / f"train_FD{fd_num}.txt", sep=r"\s+", header=None, index_col=False, names=col_names
+            ),
+            "test": pd.read_csv(
+                raw_data_path / f"test_FD{fd_num}.txt", sep=r"\s+", header=None, index_col=False, names=col_names
+            ),
+            "rul": pd.read_csv(
+                raw_data_path / f"RUL_FD{fd_num}.txt", sep=r"\s+", header=None, index_col=False, names=["RUL"]
+            ),
         }
 
     # Apply to all datasets
     for fd_num in subsets:
-        datasets[fd_num]['train'] = _add_RUL_column(datasets[fd_num]['train'])
-        datasets[fd_num]['test'] = _add_RUL_column(datasets[fd_num]['test'], datasets[fd_num]['rul'])
+        datasets[fd_num]["train"] = _add_rul_column(datasets[fd_num]["train"])
+        datasets[fd_num]["test"] = _add_rul_column(datasets[fd_num]["test"], datasets[fd_num]["rul"])
 
     return datasets
 
 
-def save_prepared(datasets: dict[str, dict[str, pd.DataFrame]]):
+def save_prepared(datasets: dict[str, dict[str, pd.DataFrame]]) -> None:
     train_data = []
     test_data = []
 
     for fd_num in subsets:
-        train_subset = datasets[fd_num]['train'].copy()
-        train_subset['subset'] = fd_num
+        train_subset = datasets[fd_num]["train"].copy()
+        train_subset["subset"] = fd_num
         train_data.append(train_subset)
 
-        test_subset = datasets[fd_num]['test'].copy()
-        test_subset['subset'] = fd_num
+        test_subset = datasets[fd_num]["test"].copy()
+        test_subset["subset"] = fd_num
         test_data.append(test_subset)
 
     # Concatenate all train and test dataframes
@@ -109,8 +109,8 @@ def save_prepared(datasets: dict[str, dict[str, pd.DataFrame]]):
 
     processed_dir = config.PREPARED_DATA_PATH
     processed_dir.mkdir(parents=True, exist_ok=True)
-    train_df.to_csv(processed_dir / 'train-all-prepared.csv', index=False)
-    test_df.to_csv(processed_dir / 'test-all-prepared.csv', index=False)
+    train_df.to_csv(processed_dir / "train-all-prepared.csv", index=False)
+    test_df.to_csv(processed_dir / "test-all-prepared.csv", index=False)
 
     logger.info(f"Train dataset shape: {train_df.shape}")
     logger.info(f"Test dataset shape: {test_df.shape}")

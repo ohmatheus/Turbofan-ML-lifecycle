@@ -49,9 +49,7 @@ build-backend = "hatchling.build"
 packages = ["src"]
 
 [tool.ruff]
-target-version = "py313"
 line-length = 120
-exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "N", "I", "B", "UP", "TCH", "ANN", "PT"]
@@ -88,7 +86,6 @@ files = [
     "src",
     "services",
     "simulation",
-    "main.py",
 ]
 plugins = [
     "pydantic.mypy",

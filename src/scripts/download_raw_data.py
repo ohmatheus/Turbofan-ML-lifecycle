@@ -1,4 +1,4 @@
-from src.data.load import download_kaggle_dataset, prepare_raw_data, save_prepared
+from src.data_utils.load import download_kaggle_dataset, prepare_raw_data, save_prepared
 
 
 def main() -> None:
