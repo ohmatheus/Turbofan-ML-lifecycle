@@ -1,13 +1,66 @@
-from collections.abc import Sequence
-
 import pandas as pd
+from pydantic import BaseModel
 
 index_names: list[str] = ["unit_number", "time_cycles"]
 setting_names: list[str] = ["setting_1", "setting_2", "setting_3"]
 sensor_names: list[str] = [f"s_{i + 1}" for i in range(0, 21)]
 
 
-def create_rolling_features(df: pd.DataFrame, window_sizes: Sequence[int] = (3, 5, 10)) -> pd.DataFrame:
+class FeatureEngineeringSettings(BaseModel):
+    # model_config = SettingsConfigDict(
+    #     yaml_file='FE_config.yaml',
+    #     env_file_encoding='utf-8'
+    # )
+
+    rolling_windows: list[int] | None = [3, 5, 10, 20]
+    delta_features: bool = True
+    settings_x_settings_interaction_features: bool = True
+    settings_sensor_interactions: bool = True
+    temperature_group_interaction_features: bool = True
+    pressure_group_interaction_features: bool = True
+    speed_group_interaction_features: bool = True
+    fuel_air_group_interaction_features: bool = True
+    cross_system_group_interaction_features: bool = True
+
+
+def create_features(df: pd.DataFrame, settings: FeatureEngineeringSettings) -> pd.DataFrame:
+    df_result = df.copy()
+
+    df_result = unique_unit_numbers(df_result)
+
+    if settings.rolling_windows is not None:
+        df_result = create_rolling_features(df_result, settings.rolling_windows)
+    if settings.delta_features:
+        df_result = create_delta_features(df_result)
+    if settings.settings_x_settings_interaction_features:
+        df_result, _ = create_settings_x_settings_interaction_features(df_result)
+    if settings.settings_sensor_interactions:
+        df_result = create_settings_sensor_interactions(df_result)
+    if settings.temperature_group_interaction_features:
+        df_result, _ = create_temperature_group_interaction_features(df_result)
+    if settings.pressure_group_interaction_features:
+        df_result, _ = create_pressure_group_interaction_features(df_result)
+    if settings.speed_group_interaction_features:
+        df_result, _ = create_speed_group_interaction_features(df_result)
+    if settings.fuel_air_group_interaction_features:
+        df_result, _ = create_fuel_air_group_interaction_features(df_result)
+    if settings.cross_system_group_interaction_features:
+        df_result, _ = create_cross_system_group_interaction_features(df_result)
+
+    return df_result
+
+
+# let's make unique unit_numbers across categories for the all dataset to avoid confusion
+def unique_unit_numbers(df: pd.DataFrame) -> pd.DataFrame:
+    df_result = df.copy()
+    for subset_id in [1, 2, 3, 4]:
+        mask = df_result["subset"] == subset_id
+        df_result.loc[mask, "unit_number"] += 1000 * subset_id
+
+    return df_result
+
+
+def create_rolling_features(df: pd.DataFrame, window_sizes: list[int] = (3, 5, 10)) -> pd.DataFrame:
     df_result = df.copy()
 
     df_result = df_result.sort_values(["subset", "unit_number", "time_cycles"])
@@ -142,3 +195,29 @@ def create_cross_system_group_interaction_features(df: pd.DataFrame) -> tuple[pd
     print(f"Created {len(interaction_cols)} interaction for cross-system features")
 
     return df_copy, interaction_cols
+
+
+#
+#
+# from pydantic import BaseModel
+# from pydantic_settings import BaseSettings, SettingsConfigDict
+# import yaml
+# from pathlib import Path
+#
+#
+# class DatabaseSettings(BaseModel):
+#     host: str
+#     port: int
+#     username: str
+#     password: str
+#
+#
+# class AppSettings(BaseSettings):
+#     model_config = SettingsConfigDict(
+#         yaml_file='config.yaml',
+#         env_file_encoding='utf-8'
+#     )
+#
+#     name: str
+#     debug: bool = False
+#     database: DatabaseSettings
