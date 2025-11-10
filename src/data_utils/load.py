@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 from kaggle.api.kaggle_api_extended import KaggleApi  # type: ignore[import-untyped]
 
+from src.data_utils.feature_engineering import FeatureEngineeringSettings, create_features
 from src.utils.config import config
 
 logger = logging.getLogger(__name__)
@@ -114,4 +115,40 @@ def save_prepared(datasets: dict[str, dict[str, pd.DataFrame]]) -> None:
 
     logger.info(f"Train dataset shape: {train_df.shape}")
     logger.info(f"Test dataset shape: {test_df.shape}")
-    logger.info("CSV files saved successfully!")
+    logger.info("CSV files saved successfully.")
+
+
+def load_prepared_apply_fe() -> None:
+    fe_settings = FeatureEngineeringSettings()
+
+    prepared_folder = config.PREPARED_DATA_PATH
+    train_df = pd.read_csv(prepared_folder / "train-all-prepared.csv", index_col=False)
+    test_df = pd.read_csv(prepared_folder / "test-all-prepared.csv", index_col=False)
+
+    train_df = create_features(train_df, fe_settings)
+    test_df = create_features(test_df, fe_settings)
+
+    rul_thresholds = {
+        1: {"max": 145, "min": 6},
+        2: {"max": 194, "min": 6},
+        3: {"max": 145, "min": 6},
+        4: {"max": 194, "min": 6},
+    }
+
+    # Apply different RUL filtering for each subset
+    filtered_dfs = []
+    for subset_id in [1, 2, 3, 4]:
+        subset_data = train_df[train_df["subset"] == subset_id]
+        max_rul = rul_thresholds[subset_id]["max"]
+        min_rul = rul_thresholds[subset_id]["min"]
+
+        filtered_subset = subset_data[(subset_data["RUL"] <= max_rul) & (subset_data["RUL"] >= min_rul)]
+        filtered_dfs.append(filtered_subset)
+
+    # Combine all filtered subsets back together
+    train_df = pd.concat(filtered_dfs, ignore_index=True)
+
+    config.READY_DATA_PATH.mkdir(parents=True, exist_ok=True)
+    train_df.to_csv(config.READY_DATA_PATH / "train.csv", index=False)
+    test_df.to_csv(config.READY_DATA_PATH / "test.csv", index=False)
+    logger.info("Train and Test dataframes are ready to use for simulation.")

@@ -13,6 +13,7 @@ dependencies = [
     "jupyterlab>=4.4.10",
     "kaggle>=1.7.4.5",
     "matplotlib>=3.10.7",
+    "mlflow>=3.6.0",
     "pandas>=2.3.3",
     "pydantic>=2.8.0,<3",
     "pydantic-settings>=2.6.0,<3",
@@ -28,6 +29,8 @@ dev = [
     "ruff>=0.6.9",
     "mypy>=1.11.0",
     "pandas-stubs>=2.3.2.250926",
+    "joblib-stubs>=1.5.2.0.20250831",
+    "types-requests>=2.32.4.20250913",
 ]
 
 test = [
@@ -91,4 +94,7 @@ plugins = [
     "pydantic.mypy",
 ]
 
+[[tool.mypy.overrides]]
+module = "sklearn.*"
+ignore_missing_imports = true
 

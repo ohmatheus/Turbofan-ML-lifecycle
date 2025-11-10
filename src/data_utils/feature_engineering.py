@@ -12,7 +12,7 @@ class FeatureEngineeringSettings(BaseModel):
     #     env_file_encoding='utf-8'
     # )
 
-    rolling_windows: list[int] | None = [3, 5, 10, 20]
+    rolling_windows: list[int] | None = [3, 5, 10]
     delta_features: bool = True
     settings_x_settings_interaction_features: bool = True
     settings_sensor_interactions: bool = True
@@ -60,7 +60,7 @@ def unique_unit_numbers(df: pd.DataFrame) -> pd.DataFrame:
     return df_result
 
 
-def create_rolling_features(df: pd.DataFrame, window_sizes: list[int] = (3, 5, 10)) -> pd.DataFrame:
+def create_rolling_features(df: pd.DataFrame, window_sizes: list[int]) -> pd.DataFrame:
     df_result = df.copy()
 
     df_result = df_result.sort_values(["subset", "unit_number", "time_cycles"])
