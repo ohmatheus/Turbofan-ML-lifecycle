@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +13,14 @@ from sklearn.preprocessing import MinMaxScaler
 from src.utils.config import config
 
 EXCLUDE_COLS = ["subset", "unit_number", "time_cycles", "RUL"]
+
+
+@dataclass
+class Metrics:
+    rmse: float
+    r2: float
+    mae: float
+
 
 pipeline = Pipeline(
     [
@@ -90,7 +99,7 @@ def fit_rf(df_train: pd.DataFrame, param_grid: dict | None = None) -> tuple[Pipe
 
 
 # Prepare test data - only last row per engine unit for RUL prediction
-def eval_rul(model: Pipeline, df_test: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, float]:
+def eval_rul(model: Pipeline, df_test: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, Metrics]:
     feature_cols = [col for col in df_test.columns if col not in EXCLUDE_COLS]
 
     # Assert that for each unit, there's only one row with max time_cycles and min RUL
@@ -127,7 +136,9 @@ def eval_rul(model: Pipeline, df_test: pd.DataFrame) -> tuple[np.ndarray, np.nda
     print(f"Test MAE: {mae:.2f}")
     print(f"Test R²: {r2:.3f}")
 
-    return y_pred, np.asarray(y_test), rmse
+    metrics: Metrics = Metrics(rmse=rmse, r2=r2, mae=mae)
+
+    return y_pred, np.asarray(y_test), metrics
 
 
 def plot_rmse(y_test: np.ndarray, y_pred: np.ndarray, rmse: float) -> plt.Figure:
@@ -141,6 +152,6 @@ def plot_rmse(y_test: np.ndarray, y_pred: np.ndarray, rmse: float) -> plt.Figure
     ax.set_ylabel("Predicted RUL")
     ax.set_title(f"Predictions vs Actual (RMSE: {rmse:.2f})")
     plt.tight_layout()
-    plt.savefig(os.path.join(temp_folder, "RUL_predictions_vs_actual.png"), dpi=300, bbox_inches="tight")
+    plt.savefig(os.path.join(temp_folder, "RUL_predictions_vs_actual.png"), bbox_inches="tight")
 
     return fig

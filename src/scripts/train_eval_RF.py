@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from src.models.random_forest_utils import eval_rul, fit_rf
+from src.models.random_forest_utils import eval_rul, fit_rf, plot_rmse
 from src.utils.config import config
 
 
@@ -26,9 +26,14 @@ def load_model_and_predict(model_name: str) -> None:
 
     test_df = pd.read_csv(config.READY_DATA_PATH / "test.csv", index_col=False)
 
-    y_pred, y_test, rmse = eval_rul(model, test_df)
+    y_pred, y_test, metrics = eval_rul(model, test_df)
+    _ = plot_rmse(y_test, y_pred, metrics.rmse)
 
-    print(f"Eval completed. Validation RMSE: {rmse:.4f}")
+    print(f"Eval completed. Validation RMSE: {metrics.rmse:.4f}")
+    mlflow.log_metric("test_rmse", metrics.rmse)
+    mlflow.log_metric("test_r2", metrics.r2)
+    mlflow.log_metric("test_mae", metrics.mae)
+    mlflow.log_artifact(str(config.TEMP_FOLDER / "RUL_predictions_vs_actual.png"))
 
 
 def main() -> None:
@@ -58,6 +63,8 @@ def main() -> None:
         mlflow.log_param("features_count", len(train_df.columns) - 1)
 
         best_model, val_rmse = fit_rf(train_df)
+
+        mlflow.log_param("best_CV_params", best_model.get_params())
 
         val_rmse = val_rmse if val_rmse is not None else -1
         mlflow.log_metric("validation_rmse", val_rmse)
