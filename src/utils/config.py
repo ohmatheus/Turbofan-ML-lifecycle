@@ -12,6 +12,11 @@ class TPMSettings(BaseSettings):
     model_config = SettingsConfigDict(frozen=True)
 
     RAW_DATA_PATH: Path = ROOT_PATH / "data/raw/"
+    PROCESSED_DATA_PATH: Path = ROOT_PATH / "data/processed/"
+    PREPARED_DATA_PATH: Path = ROOT_PATH / "data/prepared/"
+    READY_DATA_PATH: Path = ROOT_PATH / "data/ready/"
+    MODELS_PATH: Path = ROOT_PATH / "data/models/"
+    TEMP_FOLDER: Path = ROOT_PATH / "_temp/"
 
     MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server` to start server
 
