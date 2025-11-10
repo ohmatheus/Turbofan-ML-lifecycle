@@ -50,7 +50,7 @@ def create_features(df: pd.DataFrame, settings: FeatureEngineeringSettings) -> p
     return df_result
 
 
-# let's make unique unit_numbers across categories for the all dataset to avoid confusion
+# makes unique unit_numbers across categories for the all dataset to avoid confusion
 def unique_unit_numbers(df: pd.DataFrame) -> pd.DataFrame:
     df_result = df.copy()
     for subset_id in [1, 2, 3, 4]:
@@ -195,29 +195,3 @@ def create_cross_system_group_interaction_features(df: pd.DataFrame) -> tuple[pd
     print(f"Created {len(interaction_cols)} interaction for cross-system features")
 
     return df_copy, interaction_cols
-
-
-#
-#
-# from pydantic import BaseModel
-# from pydantic_settings import BaseSettings, SettingsConfigDict
-# import yaml
-# from pathlib import Path
-#
-#
-# class DatabaseSettings(BaseModel):
-#     host: str
-#     port: int
-#     username: str
-#     password: str
-#
-#
-# class AppSettings(BaseSettings):
-#     model_config = SettingsConfigDict(
-#         yaml_file='config.yaml',
-#         env_file_encoding='utf-8'
-#     )
-#
-#     name: str
-#     debug: bool = False
-#     database: DatabaseSettings
