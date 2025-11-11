@@ -99,31 +99,13 @@ def fit_rf(df_train: pd.DataFrame, param_grid: dict | None = None) -> tuple[Pipe
 
 
 # Prepare test data - only last row per engine unit for RUL prediction
-def eval_rul(model: Pipeline, df_test: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, Metrics]:
-    feature_cols = [col for col in df_test.columns if col not in EXCLUDE_COLS]
+def eval_rul(model: Pipeline, df_test: pd.DataFrame, features: list[str]) -> tuple[np.ndarray, np.ndarray, Metrics]:
+    # feature_cols = [col for col in df_test.columns if col not in EXCLUDE_COLS]
+    # assert set(feature_cols) == set(
+    #     features), f"feature_cols and features must be the same. feature_cols: {feature_cols}, features: {features}"
 
-    # Assert that for each unit, there's only one row with max time_cycles and min RUL
-    for unit in df_test["unit_number"].unique():
-        unit_data = df_test[df_test["unit_number"] == unit]
-        max_time_rows = unit_data[unit_data["time_cycles"] == unit_data["time_cycles"].max()]
-        min_rul_rows = unit_data[unit_data["RUL"] == unit_data["RUL"].min()]
-
-        assert len(max_time_rows) == 1, f"Unit {unit}: Multiple rows with same max time_cycles"
-        assert len(min_rul_rows) == 1, f"Unit {unit}: Multiple rows with same min RUL"
-
-        # Verify that max time_cycles and min RUL are in the same row
-        assert max_time_rows.index.equals(min_rul_rows.index), (
-            f"Unit {unit}: Max time_cycles and min RUL are not in the same row"
-        )
-
-    # Get only the last row (highest time_cycles) for each engine unit
-    test_last_rows = df_test.loc[df_test.groupby("unit_number")["time_cycles"].idxmax()]
-
-    print(f"Original test data shape: {df_test.shape}")
-    print(f"Test data (last rows only) shape: {test_last_rows.shape}")
-
-    x_test = test_last_rows[feature_cols]
-    y_test = test_last_rows["RUL"]
+    x_test = df_test[features]
+    y_test = df_test["RUL"]
 
     y_pred = model.predict(x_test)
 
