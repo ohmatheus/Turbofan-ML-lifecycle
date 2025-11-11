@@ -8,7 +8,8 @@ import pandas as pd
 from prometheus_client import Counter, Histogram
 from pydantic import BaseModel
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
-from watchdog.observers import BaseObserver, Observer
+from watchdog.observers import Observer
+from watchdog.observers.api import BaseObserver
 
 from src.models.model_bundle import ModelBundle, load_model_bundle
 from src.utils.config import config
