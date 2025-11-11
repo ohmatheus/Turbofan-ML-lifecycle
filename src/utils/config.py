@@ -18,7 +18,7 @@ class TPMSettings(BaseSettings):
     MODELS_PATH: Path = ROOT_PATH / "data/models/"
     TEMP_FOLDER: Path = ROOT_PATH / "_temp/"
 
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server` to start server
+    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server/ui` to start server
 
 
 config = TPMSettings()

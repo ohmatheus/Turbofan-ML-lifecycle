@@ -1,11 +1,28 @@
-import joblib
 import mlflow
 import pandas as pd
 import requests
 from requests.exceptions import RequestException, Timeout
 
-from src.models.random_forest_utils import eval_rul, fit_rf, plot_rmse
+from src.models.model_bundle import ModelMetadata, load_model_bundle, save_model_bundle
+from src.models.random_forest_utils import EXCLUDE_COLS, eval_rul, fit_rf, plot_rmse
 from src.utils.config import config
+
+
+def log_model_metadata(metadata: ModelMetadata) -> None:
+    meta = {
+        "model_type": metadata.model_type,
+        "feature_names": metadata.feature_names or [],
+        "n_features": metadata.n_features,
+        "target": metadata.target,
+        "version": metadata.version,
+    }
+    mlflow.log_params({
+        "metadata_model_type": metadata.model_type,
+        "metadata_target": metadata.target,
+        "metadata_version": metadata.version,
+        "metadata_n_features": metadata.n_features,
+    })
+    mlflow.log_dict(meta, "model_metadata.json")
 
 
 def check_mlflow_server(uri: str, timeout: int = 5) -> bool:
@@ -22,14 +39,14 @@ def check_mlflow_server(uri: str, timeout: int = 5) -> bool:
 def load_model_and_predict(model_name: str) -> None:
     model_path = config.MODELS_PATH
     model_file = model_path / f"{model_name}.joblib"
-    model = joblib.load(model_file)
+    bundle = load_model_bundle(str(model_file))
 
-    test_df = pd.read_csv(config.READY_DATA_PATH / "test.csv", index_col=False)
+    test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
 
-    y_pred, y_test, metrics = eval_rul(model, test_df)
+    y_pred, y_test, metrics = eval_rul(bundle.model, test_df, bundle.get_feature_names())
     _ = plot_rmse(y_test, y_pred, metrics.rmse)
 
-    print(f"Eval completed. Validation RMSE: {metrics.rmse:.4f}")
+    print(f"Eval completed. Test RMSE: {metrics.rmse:.4f}")
     mlflow.log_metric("test_rmse", metrics.rmse)
     mlflow.log_metric("test_r2", metrics.r2)
     mlflow.log_metric("test_mae", metrics.mae)
@@ -74,8 +91,17 @@ def main() -> None:
         model_path = config.MODELS_PATH
         model_path.mkdir(exist_ok=True)
         model_file = model_path / f"{model_name}.joblib"
-        joblib.dump(best_model, model_file)
-        print(f"Model saved to: {model_file}")
+
+        feature_cols = [col for col in train_df.columns if col not in EXCLUDE_COLS]
+        metadata = ModelMetadata(
+            model_type="RandomForestRegressor",
+            feature_names=feature_cols,
+            n_features=len(feature_cols),
+            target="RUL",
+            version=model_name,
+        )
+        save_model_bundle(best_model, metadata, str(model_file))
+        log_model_metadata(metadata)
 
         print(f"MLflow run completed. Validation RMSE: {val_rmse:.4f}")
 
