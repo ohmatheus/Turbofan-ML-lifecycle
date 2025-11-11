@@ -12,7 +12,7 @@ class FeatureEngineeringSettings(BaseModel):
     #     env_file_encoding='utf-8'
     # )
 
-    rolling_windows: list[int] | None = [3, 5, 10]
+    rolling_windows: list[int] | None = [3, 5, 10, 20]
     delta_features: bool = True
     settings_x_settings_interaction_features: bool = True
     settings_sensor_interactions: bool = True

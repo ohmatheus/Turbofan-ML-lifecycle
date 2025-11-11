@@ -1,15 +1,15 @@
 from pathlib import Path
 
-# from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_PATH = Path(__file__).parent.parent.parent
 
+# from dotenv import load_dotenv
 # load_dotenv()
 
 
 class TPMSettings(BaseSettings):
-    model_config = SettingsConfigDict(frozen=True)
+    model_config = SettingsConfigDict(env_file=".env", frozen=True)
 
     RAW_DATA_PATH: Path = ROOT_PATH / "data/raw/"
     PROCESSED_DATA_PATH: Path = ROOT_PATH / "data/processed/"
@@ -18,7 +18,9 @@ class TPMSettings(BaseSettings):
     MODELS_PATH: Path = ROOT_PATH / "data/models/"
     TEMP_FOLDER: Path = ROOT_PATH / "_temp/"
 
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server` to start server
+    TEST_ENV: str = "dev"
+
+    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server/ui` to start server
 
 
 config = TPMSettings()

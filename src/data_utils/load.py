@@ -151,4 +151,26 @@ def load_prepared_apply_fe() -> None:
     config.READY_DATA_PATH.mkdir(parents=True, exist_ok=True)
     train_df.to_csv(config.READY_DATA_PATH / "train.csv", index=False)
     test_df.to_csv(config.READY_DATA_PATH / "test.csv", index=False)
+
+    # Assert that for each unit, there's only one row with max time_cycles and min RUL
+    for unit in test_df["unit_number"].unique():
+        unit_data = test_df[test_df["unit_number"] == unit]
+        max_time_rows = unit_data[unit_data["time_cycles"] == unit_data["time_cycles"].max()]
+        min_rul_rows = unit_data[unit_data["RUL"] == unit_data["RUL"].min()]
+
+        assert len(max_time_rows) == 1, f"Unit {unit}: Multiple rows with same max time_cycles"
+        assert len(min_rul_rows) == 1, f"Unit {unit}: Multiple rows with same min RUL"
+
+        # Verify that max time_cycles and min RUL are in the same row
+        assert max_time_rows.index.equals(min_rul_rows.index), (
+            f"Unit {unit}: Max time_cycles and min RUL are not in the same row"
+        )
+
+    # Get only the last row (highest time_cycles) for each engine unit
+    test_last_rows = test_df.loc[test_df.groupby("unit_number")["time_cycles"].idxmax()]
+    test_last_rows.to_csv(config.READY_DATA_PATH / "test_last_rows.csv", index=False)
+
+    print(f"Original test data shape: {test_df.shape}")
+    print(f"Test data (last rows only) shape: {test_last_rows.shape}")
+
     logger.info("Train and Test dataframes are ready to use for simulation.")
