@@ -27,11 +27,16 @@ class ErrorOutput(BaseModel):
     missing_features: list[str] = None
 
 
-@bentoml.service()
+@bentoml.service(
+    resources={"cpu": "2", "memory": "2Gi"},
+    traffic={"timeout": 60, "concurrency": 100, "max_concurrency": 200},
+    monitoring={"enabled": True, "type": "default"}
+)
 class PredictionService:
     model_bundle: ModelBundle
 
     def __init__(self):
+        print(f"TEST ENV : {config.TEST_ENV}")
         model_name = "full_sandbox"
         model_path = config.MODELS_PATH
         model_file = model_path / f"{model_name}.joblib"

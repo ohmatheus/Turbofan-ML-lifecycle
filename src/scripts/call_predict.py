@@ -26,7 +26,7 @@ def predict() -> None:
 
     client.close()
 
-    print(f"Received {result['n_samples']} results with input shape: {result['input_shape']}")
+    print(f"Received {result['n_samples']} results with input shape: {result['input_shape']} with model version '{result['model_version']}'")
     # feature_cols = [col for col in test_last_rows.columns if col not in EXCLUDE_COLS]
     # x_test = test_last_rows[feature_cols]
     #
@@ -37,6 +37,8 @@ def predict() -> None:
 
 
 def main() -> None:
+    print(f"TEST ENV : {config.TEST_ENV}")
+
     predict()
 
 
