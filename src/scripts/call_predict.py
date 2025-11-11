@@ -4,8 +4,10 @@ from collections.abc import Hashable, Mapping
 from typing import Any, Literal, Protocol, TypedDict, cast
 
 import bentoml
+import numpy as np
 import pandas as pd
 
+from src.models.random_forest_utils import rmse_score
 from src.utils.config import config
 
 Payload = dict[str, list[dict[Hashable, Any]]]
@@ -100,6 +102,11 @@ def single_predict() -> None:
         try:
             result: Mapping[str, Any] = client.predict(data)
             # result = client.predict([3])
+
+            y_test = test_last_rows["RUL"]
+            y_pred = result.get("rul_predictions")
+            rmse = rmse_score(np.asarray(y_test), np.asarray(y_pred))
+            print(f"Test RMSE: {rmse:.2f}")
 
             print(
                 f"Received {result['n_samples']} results with input shape: {result['input_shape']} with model version '{result['model_version']}'"
