@@ -20,6 +20,7 @@ dependencies = [
     "pydantic-settings>=2.6.0,<3",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
+    "watchdog>=6.0.0",
 ]
 
 [project.scripts]
