@@ -1,10 +1,10 @@
-import pandas as pd
-from src.utils.config import config
+from typing import Any
 
 import bentoml
-
-from typing import Any
+import pandas as pd
 from pydantic import BaseModel
+
+from src.utils.config import config
 
 
 class PredictionInput(BaseModel):
@@ -14,7 +14,7 @@ class PredictionInput(BaseModel):
 def predict() -> None:
     test_last_rows = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
 
-    data = {"rows": test_last_rows.to_dict('records')}
+    data = {"rows": test_last_rows.to_dict("records")}
 
     client = bentoml.SyncHTTPClient("http://localhost:3000")
 
@@ -26,7 +26,9 @@ def predict() -> None:
 
     client.close()
 
-    print(f"Received {result['n_samples']} results with input shape: {result['input_shape']} with model version '{result['model_version']}'")
+    print(
+        f"Received {result['n_samples']} results with input shape: {result['input_shape']} with model version '{result['model_version']}'"
+    )
     # feature_cols = [col for col in test_last_rows.columns if col not in EXCLUDE_COLS]
     # x_test = test_last_rows[feature_cols]
     #

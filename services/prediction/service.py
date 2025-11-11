@@ -1,12 +1,13 @@
-from typing import Any, Union
+from typing import Any
 
 import bentoml
-import pandas as pd
 import numpy as np
-from bentoml.io import JSON
+import pandas as pd
 from pydantic import BaseModel
-from src.models.model_bundle import ModelMetadata, load_model_bundle, ModelBundle
+
+from src.models.model_bundle import ModelBundle, load_model_bundle
 from src.utils.config import config
+
 
 class PredictionInput(BaseModel):
     rows: list[dict[str, Any]]
@@ -30,12 +31,12 @@ class ErrorOutput(BaseModel):
 @bentoml.service(
     resources={"cpu": "2", "memory": "2Gi"},
     traffic={"timeout": 60, "concurrency": 100, "max_concurrency": 200},
-    monitoring={"enabled": True, "type": "default"}
+    monitoring={"enabled": True, "type": "default"},
 )
 class PredictionService:
     model_bundle: ModelBundle
 
-    def __init__(self):
+    def __init__(self) -> None:
         print(f"TEST ENV : {config.TEST_ENV}")
         model_name = "full_sandbox"
         model_path = config.MODELS_PATH
@@ -48,15 +49,12 @@ class PredictionService:
     def predict(self, data: PredictionInput) -> dict[str, Any]:
         try:
             print(f"Received data type: {type(data)}")
-            #print(f"Data content: {data}")
+            # print(f"Data content: {data}")
 
             samples = data.rows
 
             if not samples:
-                return ErrorOutput(
-                    error="No data provided",
-                    type="validation_error"
-                ).model_dump()
+                return ErrorOutput(error="No data provided", type="validation_error").model_dump()
 
             df = pd.DataFrame(samples)
 
@@ -77,7 +75,7 @@ class PredictionService:
                     type="validation_error",
                     received_features=list(df.columns),
                     expected_features=list(expected_features),
-                    missing_features=list(missing_features)
+                    missing_features=list(missing_features),
                 ).model_dump()
 
             predictions = self.model_bundle.model.predict(df[self.model_bundle.get_feature_names()])
@@ -91,24 +89,18 @@ class PredictionService:
                 rul_predictions=predictions_list,
                 model_version=self.model_bundle.metadata.version,
                 n_samples=len(predictions_list),
-                input_shape=list(df.shape)
+                input_shape=list(df.shape),
             ).model_dump()
 
         except ValueError as e:
-            return ErrorOutput(
-                error=str(e),
-                type="validation_error"
-            ).model_dump()
+            return ErrorOutput(error=str(e), type="validation_error").model_dump()
 
         except Exception as e:
-            return ErrorOutput(
-                error=f"Internal server error: {str(e)}",
-                type="internal_error"
-            ).model_dump()
+            return ErrorOutput(error=f"Internal server error: {str(e)}", type="internal_error").model_dump()
 
-    #@bentoml.on_startup
-    #@bentoml.on_deployement
-    #@bentoml.on_shutdown
+    # @bentoml.on_startup
+    # @bentoml.on_deployement
+    # @bentoml.on_shutdown
     #
     # /readyz
     # def __is_ready__(self) -> bool:
@@ -117,7 +109,7 @@ class PredictionService:
     #         return False
     #     return self.db_connection.is_connected() and self.cache.is_available()
 
-    #__is_alive__ /livez
+    # __is_alive__ /livez
     #
     # import shutil
     # import bentoml

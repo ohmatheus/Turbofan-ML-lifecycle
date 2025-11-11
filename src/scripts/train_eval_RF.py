@@ -16,12 +16,14 @@ def log_model_metadata(metadata: ModelMetadata) -> None:
         "target": metadata.target,
         "version": metadata.version,
     }
-    mlflow.log_params({
-        "metadata_model_type": metadata.model_type,
-        "metadata_target": metadata.target,
-        "metadata_version": metadata.version,
-        "metadata_n_features": metadata.n_features,
-    })
+    mlflow.log_params(
+        {
+            "metadata_model_type": metadata.model_type,
+            "metadata_target": metadata.target,
+            "metadata_version": metadata.version,
+            "metadata_n_features": metadata.n_features,
+        }
+    )
     mlflow.log_dict(meta, "model_metadata.json")
 
 

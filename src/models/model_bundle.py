@@ -1,7 +1,8 @@
-import joblib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+
+import joblib
+import pandas as pd
 from sklearn.pipeline import Pipeline
 
 
@@ -19,27 +20,24 @@ class ModelBundle:
     metadata: ModelMetadata
     saved_at: str
 
-    def __init__(self, model, metadata: ModelMetadata):
+    def __init__(self, model: Pipeline, metadata: ModelMetadata) -> None:
         self.model = model
         self.metadata = metadata
         self.saved_at = datetime.now().isoformat()
 
-    def predict(self, x):
-        return self.model.predict(x)
-
-    def get_feature_names(self) -> List[str]:
+    def get_feature_names(self) -> list[str]:
         return self.metadata.feature_names
 
     def get_n_features(self) -> int:
         return self.metadata.n_features
 
-    def validate_input_shape(self, x):
+    def validate_input_shape(self, x: pd.DataFrame) -> None:
         expected_features = self.get_n_features()
         if expected_features and x.shape[1] != expected_features:
             raise ValueError(f"Expected {expected_features} features, got {x.shape[1]}")
 
 
-def save_model_bundle(model, metadata: ModelMetadata, filepath: str):
+def save_model_bundle(model: Pipeline, metadata: ModelMetadata, filepath: str) -> None:
     bundle = ModelBundle(model, metadata)
     joblib.dump(bundle, filepath)
     print(f"Model bundle saved: {filepath}")
@@ -52,5 +50,3 @@ def load_model_bundle(filepath: str) -> ModelBundle:
     print(f"Version: {bundle.metadata.version}")
     print(f"Features: {bundle.get_n_features()}")
     return bundle
-
-
