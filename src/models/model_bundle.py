@@ -25,7 +25,7 @@ class ModelBundle:
         self.metadata = metadata
         self.saved_at = datetime.now().isoformat()
 
-    def get_feature_names(self) -> list[str]:
+    def get_feature_names(self) -> list[str] | None:
         return self.metadata.feature_names
 
     def get_n_features(self) -> int:
@@ -44,7 +44,7 @@ def save_model_bundle(model: Pipeline, metadata: ModelMetadata, filepath: str) -
 
 
 def load_model_bundle(filepath: str) -> ModelBundle:
-    bundle = joblib.load(filepath)
+    bundle: ModelBundle = joblib.load(filepath)
     print(f"Model bundle loaded from: {filepath}")
     print(f"Model type: {bundle.metadata.model_type}")
     print(f"Version: {bundle.metadata.version}")

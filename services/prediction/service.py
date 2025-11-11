@@ -22,10 +22,10 @@ class PredictionOutput(BaseModel):
 
 class ErrorOutput(BaseModel):
     error: str
-    type: str = None
-    received_features: list[str] = None
-    expected_features: list[str] = None
-    missing_features: list[str] = None
+    type: str | None = None
+    received_features: list[str] | None = None
+    expected_features: list[str] | None = None
+    missing_features: list[str] | None = None
 
 
 @bentoml.service(
@@ -63,7 +63,11 @@ class PredictionService:
             print(f"DataFrame shape: {df.shape}")
 
             # Get the expected feature names from model_bundle
-            expected_features = set(self.model_bundle.get_feature_names())
+            feature_names = self.model_bundle.get_feature_names()
+            if feature_names is None:
+                return ErrorOutput(error="Missing feature names", type="validation_error").model_dump()
+
+            expected_features = set(feature_names)
             received_features = set(df.columns)
 
             # Check if all expected features are present
@@ -78,7 +82,7 @@ class PredictionService:
                     missing_features=list(missing_features),
                 ).model_dump()
 
-            predictions = self.model_bundle.model.predict(df[self.model_bundle.get_feature_names()])
+            predictions = self.model_bundle.model.predict(df[feature_names])
 
             if isinstance(predictions, np.ndarray):
                 predictions_list = predictions.tolist()

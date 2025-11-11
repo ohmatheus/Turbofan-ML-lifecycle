@@ -45,7 +45,11 @@ def load_model_and_predict(model_name: str) -> None:
 
     test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
 
-    y_pred, y_test, metrics = eval_rul(bundle.model, test_df, bundle.get_feature_names())
+    feature_names = bundle.get_feature_names()
+    if feature_names is None:
+        print("Feature names not found in model bundle. Skipping prediction.")
+        return
+    y_pred, y_test, metrics = eval_rul(bundle.model, test_df, feature_names)
     _ = plot_rmse(y_test, y_pred, metrics.rmse)
 
     print(f"Eval completed. Test RMSE: {metrics.rmse:.4f}")
