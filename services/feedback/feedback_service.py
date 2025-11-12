@@ -12,7 +12,6 @@ from pydantic import BaseModel
 from src.models.random_forest_utils import rmse_score
 from src.utils.config import config
 
-
 class FeedbackInput(BaseModel):
     prediction_id: str
     predicted_rul: float
@@ -28,10 +27,18 @@ class FeedbackResponse(BaseModel):
     message: str
     feedback_id: str
 
-
-feedback_counter = Counter("rul_feedback_total", "Total feedback entries received")
-feedback_accuracy_histogram = Histogram("rul_prediction_accuracy", "Distribution of prediction errors")
-feedback_rmse_histogram = Histogram("rul_rmse", "Distribution of rmse")
+feedback_counter = Counter(
+    name="rul_feedback_total",
+    documentation="Total feedback entries received"
+)
+feedback_accuracy_histogram = Histogram(
+    name="rul_prediction_accuracy",
+    documentation="Distribution of prediction errors"
+)
+feedback_rmse_histogram = Histogram(
+    name="rul_rmse",
+    documentation="Distribution of rmse"
+)
 
 
 @bentoml.service(

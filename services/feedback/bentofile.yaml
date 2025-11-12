@@ -5,13 +5,13 @@ labels:
   project: turbofan-predictive-maintenance
 description: "Feedback Service"
 
-envs:
-  - name: BENTOML_PORT
-    value: "3001"
-  - name: LOG_LEVEL
-    value: "INFO"
-  - name: PROMETHEUS_MULTIPROC_DIR
-    value: "/tmp"
+#envs:
+#  - name: BENTOML_PORT
+#    value: "3001"
+#  - name: LOG_LEVEL
+#    value: "INFO"
+#  - name: PROMETHEUS_MULTIPROC_DIR
+#    value: "/tmp"
 
 include:
   - "service.py"
