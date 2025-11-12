@@ -1,6 +1,7 @@
 import concurrent.futures
 import time
 from collections.abc import Hashable, Mapping
+from datetime import datetime
 from typing import Any, Literal, Protocol, TypedDict, cast
 
 import bentoml
@@ -120,11 +121,48 @@ def single_predict() -> None:
     print("Client closed.")
 
 
+def single_predict_with_feedback() -> None:
+    test_last_rows = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
+    data: Payload = {"rows": test_last_rows.to_dict("records")}
+
+    # Make prediction
+    prediction_client = bentoml.SyncHTTPClient("http://localhost:3000")
+    result = prediction_client.predict(data)
+
+    # Extract results
+    y_test = test_last_rows["RUL"]
+    y_pred = result.get("rul_predictions")
+    engine_ids = test_last_rows["unit_number"].astype(str)
+
+    # Submit feedback for each prediction
+    feedback_client = bentoml.SyncHTTPClient("http://localhost:3001")  # feedback service port
+
+    for i, (actual, predicted, engine_id) in enumerate(zip(y_test, y_pred, engine_ids, strict=True)):
+        feedback_data = {
+            "prediction_id": f"pred_{int(time.time())}_{i}",
+            "predicted_rul": float(predicted),
+            "actual_rul": float(actual),
+            "engine_id": engine_id,
+            "prediction_timestamp": datetime.now().isoformat(),
+            "metadata": {"model_version": result.get("model_version"), "test_batch": True},
+        }
+
+        feedback_response = feedback_client.submit_feedback(feedback_data)
+        print(f"Feedback submitted: {feedback_response}")
+
+    # Calculate and display RMSE - just to ensure everything is ok
+    rmse = rmse_score(np.asarray(y_test), np.asarray(y_pred))
+    print(f"Test RMSE: {rmse:.2f}")
+
+
 def main() -> None:
     print(f"TEST ENV : {config.TEST_ENV}")
-    concurrent_requests()
     # single_predict()
+    # concurrent_requests()
+    single_predict_with_feedback()
 
 
 if __name__ == "__main__":
     main()
+#
+#
