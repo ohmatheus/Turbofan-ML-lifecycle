@@ -35,9 +35,9 @@ class ErrorOutput(BaseModel):
 
 
 prediction_counter = Counter(
-        name="rul_predictions_total",
-        documentation="Total number of RUL predictions made",
-        labelnames=["status", "model_version"],
+    name="rul_predictions_total",
+    documentation="Total number of RUL predictions made",
+    labelnames=["status", "model_version"],
 )
 prediction_time_histogram = Histogram(
     name="rul_prediction_duration_seconds",
@@ -45,14 +45,10 @@ prediction_time_histogram = Histogram(
     labelnames=["model_version"],
 )
 error_counter = Counter(
-    name="rul_prediction_errors_total",
-    documentation="Total number of prediction errors",
-    labelnames=["error_type"]
+    name="rul_prediction_errors_total", documentation="Total number of prediction errors", labelnames=["error_type"]
 )
 model_reload_counter = Counter(
-    name="model_reloads_total",
-    documentation="Total number of model reloads",
-    labelnames=["status"]
+    name="model_reloads_total", documentation="Total number of model reloads", labelnames=["status"]
 )
 
 
@@ -95,10 +91,10 @@ class PredictionService:
             self.model_bundle = load_model_bundle(str(self.model_file))
             self.expected_features = self.model_bundle.get_n_features()
             print(f"Model loaded: version {self.model_bundle.metadata.version}")
-            #model_reload_counter.labels(status="success").inc()
+            # model_reload_counter.labels(status="success").inc()
         except Exception as e:
             print(f"Failed to load model: {e}")
-            #model_reload_counter.labels(status="error").inc()
+            # model_reload_counter.labels(status="error").inc()
             raise
 
     def _setup_file_watcher(self) -> None:
@@ -156,7 +152,7 @@ class PredictionService:
             missing_features = expected_features - received_features
 
             if missing_features:
-                #error_counter.labels(error_type="missing_features").inc()
+                # error_counter.labels(error_type="missing_features").inc()
                 return ErrorOutput(
                     error=f"Missing required features: {sorted(missing_features)}",
                     type="validation_error",
