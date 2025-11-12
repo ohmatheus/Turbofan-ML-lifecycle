@@ -1,12 +1,12 @@
 import concurrent.futures
 import time
 from collections.abc import Hashable, Mapping
+from datetime import datetime
 from typing import Any, Literal, Protocol, TypedDict, cast
 
 import bentoml
 import numpy as np
 import pandas as pd
-from datetime import datetime
 
 from src.models.random_forest_utils import rmse_score
 from src.utils.config import config
@@ -137,17 +137,14 @@ def single_predict_with_feedback() -> None:
     # Submit feedback for each prediction
     feedback_client = bentoml.SyncHTTPClient("http://localhost:3001")  # feedback service port
 
-    for i, (actual, predicted, engine_id) in enumerate(zip(y_test, y_pred, engine_ids)):
+    for i, (actual, predicted, engine_id) in enumerate(zip(y_test, y_pred, engine_ids, strict=True)):
         feedback_data = {
             "prediction_id": f"pred_{int(time.time())}_{i}",
             "predicted_rul": float(predicted),
             "actual_rul": float(actual),
             "engine_id": engine_id,
             "prediction_timestamp": datetime.now().isoformat(),
-            "metadata": {
-                "model_version": result.get("model_version"),
-                "test_batch": True
-            }
+            "metadata": {"model_version": result.get("model_version"), "test_batch": True},
         }
 
         feedback_response = feedback_client.submit_feedback(feedback_data)
@@ -157,10 +154,11 @@ def single_predict_with_feedback() -> None:
     rmse = rmse_score(np.asarray(y_test), np.asarray(y_pred))
     print(f"Test RMSE: {rmse:.2f}")
 
+
 def main() -> None:
     print(f"TEST ENV : {config.TEST_ENV}")
-    #single_predict()
-    #concurrent_requests()
+    # single_predict()
+    # concurrent_requests()
     single_predict_with_feedback()
 
 
