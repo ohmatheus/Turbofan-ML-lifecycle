@@ -7,6 +7,7 @@ from src.models.model_bundle import ModelMetadata, load_model_bundle, save_model
 from src.models.random_forest_utils import EXCLUDE_COLS, eval_rul, fit_rf, plot_rmse
 from src.utils.config import config
 
+MODEL_VERSION = "1.0"
 
 def log_model_metadata(metadata: ModelMetadata) -> None:
     meta = {
@@ -104,7 +105,7 @@ def main() -> None:
             feature_names=feature_cols,
             n_features=len(feature_cols),
             target="RUL",
-            version=model_name,
+            version=MODEL_VERSION,
         )
         save_model_bundle(best_model, metadata, str(model_file))
         log_model_metadata(metadata)

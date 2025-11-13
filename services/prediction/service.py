@@ -34,8 +34,13 @@ class ErrorOutput(BaseModel):
     missing_features: list[str] | None = None
 
 
+prediction_service_counter = Counter(
+    name="predictions_service_call_total",
+    documentation="Total number of call to the service",
+    labelnames=["status", "model_version"],
+)
 prediction_counter = Counter(
-    name="rul_predictions_total",
+    name="predictions_total",
     documentation="Total number of RUL predictions made",
     labelnames=["status", "model_version"],
 )
@@ -168,8 +173,10 @@ class PredictionService:
             else:
                 predictions_list = [float(predictions)]
 
+            prediction_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc(amount=len(predictions_list))
+
             # Record metrics
-            prediction_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc()
+            prediction_service_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc()
             prediction_time_histogram.labels(model_version=self.model_bundle.metadata.version).observe(
                 time.time() - start_time
             )
