@@ -23,8 +23,8 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event) -> None:
 
     try:
         while not stop_event.is_set():
-            # Random wait between 0 and 1 second
-            time.sleep(random.uniform(0, 1))
+            # Random wait between 0 and 5 second
+            time.sleep(random.uniform(0, 5))
 
             # Select random rows from test data
             num_rows = random.randint(1, min(config.CONTINUOUS_PREDICT_RANGE, len(test_data)))
@@ -37,9 +37,16 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event) -> None:
             try:
                 start_time = time.time()
                 data: Payload = {"rows": selected_rows.to_dict("records")}
-                result = prediction_client.predict(data)
+                result: Mapping[str, Any] = {}
+                if config.SIMULATE_ERRORS and random.randint(1, 10) == 1:
+                    result = prediction_client.predict("")  # simulate error, could simulate other type of errors
+                else:
+                    result = prediction_client.predict(data)
                 prediction_time = time.time() - start_time
 
+                if result.get("error"):
+                    print(f"User {user_id} - Request {request_count}: Error - {result.get('error')}")
+                    continue
 
                 # Submit feedback for each prediction
                 y_actual = selected_rows["RUL"]
@@ -105,8 +112,8 @@ def continuous_predict() -> None:
     prediction_client.close()
     feedback_client.close()
 
-    # Create 5 users
-    num_workers = 5
+    # Create 10 users
+    num_workers = config.NUM_USERS
     print(f"Starting continuous prediction simulation with {num_workers} users")
     print(
         f"Each user will select 1-{config.CONTINUOUS_PREDICT_RANGE} random rows from {len(test_last_rows)} available test rows")
@@ -136,9 +143,9 @@ def continuous_predict() -> None:
         print("\nStopping simulation...")
         stop_event.set()
 
-        # Wait for all threads to complete
+        # Wait for all threads
         for thread in threads:
-            thread.join(timeout=2)  # Wait up to 5 seconds for each thread
+            thread.join(timeout=2)
 
         print("All users stopped.")
 

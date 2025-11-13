@@ -25,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 initialize = "src.scripts.download_raw_data:main"
+continuous = "src.scripts.continuous_predict:main"
 
 [dependency-groups]
 dev = [

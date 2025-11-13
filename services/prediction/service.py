@@ -3,10 +3,11 @@ import time
 from typing import Any
 
 import bentoml
+from bentoml.exceptions import BadInput
 import numpy as np
 import pandas as pd
-from prometheus_client import Counter, Histogram
-from pydantic import BaseModel
+from prometheus_client import Counter, Histogram, Gauge
+from pydantic import BaseModel, ValidationError
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
@@ -50,10 +51,19 @@ prediction_time_histogram = Histogram(
     labelnames=["model_version"],
 )
 error_counter = Counter(
-    name="rul_prediction_errors_total", documentation="Total number of prediction errors", labelnames=["error_type"]
+    name="rul_prediction_errors_total",
+    documentation="Total number of prediction errors",
+    labelnames=["error_type"]
 )
 model_reload_counter = Counter(
-    name="model_reloads_total", documentation="Total number of model reloads", labelnames=["status"]
+    name="model_reloads_total",
+    documentation="Total number of model reloads",
+    labelnames=["status", "model_version"]
+)
+model_reload_timestamp = Gauge(
+    name="model_reload_timestamp_seconds",
+    documentation="Timestamp of the last model reload",
+    labelnames=["status", "model_version"]
 )
 
 
@@ -96,10 +106,12 @@ class PredictionService:
             self.model_bundle = load_model_bundle(str(self.model_file))
             self.expected_features = self.model_bundle.get_n_features()
             print(f"Model loaded: version {self.model_bundle.metadata.version}")
-            # model_reload_counter.labels(status="success").inc()
+            model_reload_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc()
+            model_reload_timestamp.labels(status="success", model_version=self.model_bundle.metadata.version).set_to_current_time()
         except Exception as e:
             print(f"Failed to load model: {e}")
-            # model_reload_counter.labels(status="error").inc()
+            model_reload_counter.labels(status="error", model_version=self.model_bundle.metadata.version).inc()
+            model_reload_timestamp.labels(status="error", model_version=self.model_bundle.metadata.version).set_to_current_time()
             raise
 
     def _setup_file_watcher(self) -> None:
@@ -128,13 +140,23 @@ class PredictionService:
                 print(f"Failed to reload model: {e}")
 
     @bentoml.api
-    def predict(self, data: PredictionInput) -> dict[str, Any]:
+    def predict(self, data: Any) -> dict[str, Any]:
         start_time = time.time()
         try:
-            print(f"Received data type: {type(data)}")
+            if data is None:
+                raise BadInput("No data provided")
+
+            try:
+                validated_data = PredictionInput.model_validate(data)
+            except ValidationError as e:
+                error_counter.labels(error_type="validation_error").inc()
+                print(f"Input validation error: {str(e)}")
+                raise BadInput(f"Input validation error: {str(e)}")
+
+            #print(f"Received data type: {type(validated_data)}")
             # print(f"Data content: {data}")
 
-            samples = data.rows
+            samples = validated_data.rows
 
             if not samples:
                 return ErrorOutput(error="No data provided", type="validation_error").model_dump()
@@ -157,7 +179,9 @@ class PredictionService:
             missing_features = expected_features - received_features
 
             if missing_features:
-                # error_counter.labels(error_type="missing_features").inc()
+                error_counter.labels(error_type="missing_features").inc()
+                print(f"Missing Feature error: {str(missing_features)}")
+
                 return ErrorOutput(
                     error=f"Missing required features: {sorted(missing_features)}",
                     type="validation_error",
@@ -188,12 +212,14 @@ class PredictionService:
                 input_shape=list(df.shape),
             ).model_dump()
 
-        except ValueError as e:
+        except (ValueError, ValidationError) as e:
             error_counter.labels(error_type="validation_error").inc()
+            print(f"Validation error: {str(e)}")
             return ErrorOutput(error=str(e), type="validation_error").model_dump()
 
         except Exception as e:
             error_counter.labels(error_type="internal_error").inc()
+            print(f"Internal server error: {str(e)}")
             return ErrorOutput(error=f"Internal server error: {str(e)}", type="internal_error").model_dump()
 
     @bentoml.api
