@@ -158,7 +158,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 14,
+            "fillOpacity": 13,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -166,7 +166,7 @@
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "smooth",
+            "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
             "scaleDistribution": {
@@ -243,6 +243,36 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{error_type=\"internal_error\", instance=\"prediction-service:3000\", job=\"prediction-api\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{error_type=\"bad_input\", instance=\"prediction-service:3000\", job=\"prediction-api\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
@@ -308,5 +338,5 @@
   "timezone": "browser",
   "title": "Prediction overview",
   "uid": "ad2v2fs",
-  "version": 2
+  "version": 3
 }

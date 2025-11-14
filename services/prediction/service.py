@@ -219,6 +219,11 @@ class PredictionService:
             print(f"Validation error: {str(e)}")
             return ErrorOutput(error=str(e), type="validation_error").model_dump()
 
+        except BadInput as e:
+            error_counter.labels(error_type="bad_input").inc()
+            print(f"Bad Input error: {str(e)}")
+            return ErrorOutput(error=str(e), type="bad_input").model_dump()
+
         except Exception as e:
             error_counter.labels(error_type="internal_error").inc()
             print(f"Internal server error: {str(e)}")
