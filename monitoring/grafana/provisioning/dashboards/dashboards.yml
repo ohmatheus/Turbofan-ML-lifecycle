@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'turbofan-dashboards'
+    orgId: 1
+    folder: 'Turbofan Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 5
+    allowUiUpdates: true
+    options:
+      path: /etc/dashboards

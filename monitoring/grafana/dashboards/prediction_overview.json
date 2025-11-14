@@ -16,7 +16,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff405e8nt7bpcd"
+          "uid": "PBFA97CFB590B2093"
         },
         "enable": true,
         "hide": false,
@@ -26,7 +26,7 @@
         "tagKeys": "model_reload",
         "target": {
           "expr": "changes(model_reload_timestamp_seconds{job=\"prediction-api\"}[10s]) > 0",
-          "interval": "",
+          "interval": "0",
           "refId": "Anno"
         },
         "textFormat": "{{model_version}}",
@@ -38,13 +38,13 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 3,
   "links": [],
   "panels": [
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff405e8nt7bpcd"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -142,7 +142,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff405e8nt7bpcd"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -293,5 +293,5 @@
   "timezone": "browser",
   "title": "Prediction overview",
   "uid": "ad2v2fs",
-  "version": 11
+  "version": 2
 }

@@ -16,7 +16,7 @@
       {
         "datasource": {
           "type": "prometheus",
-          "uid": "ff405e8nt7bpcd"
+          "uid": "PBFA97CFB590B2093"
         },
         "enable": true,
         "hide": false,
@@ -25,7 +25,7 @@
         "tagKeys": "model_reload",
         "target": {
           "expr": "changes(model_reload_timestamp_seconds{job=\"prediction-api\"}[10s]) > 0",
-          "interval": "",
+          "interval": "0",
           "refId": "Anno"
         },
         "textFormat": "{{model_version}}",
@@ -42,7 +42,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "ff405e8nt7bpcd"
+        "uid": "PBFA97CFB590B2093"
       },
       "fieldConfig": {
         "defaults": {
@@ -160,5 +160,5 @@
   "timezone": "browser",
   "title": "RMSE - Drift Detection",
   "uid": "ad5r62c",
-  "version": 8
+  "version": 3
 }
