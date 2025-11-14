@@ -3,10 +3,10 @@ import time
 from typing import Any
 
 import bentoml
-from bentoml.exceptions import BadInput
 import numpy as np
 import pandas as pd
-from prometheus_client import Counter, Histogram, Gauge
+from bentoml.exceptions import BadInput
+from prometheus_client import Counter, Gauge, Histogram
 from pydantic import BaseModel, ValidationError
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
@@ -51,19 +51,15 @@ prediction_time_histogram = Histogram(
     labelnames=["model_version"],
 )
 error_counter = Counter(
-    name="rul_prediction_errors_total",
-    documentation="Total number of prediction errors",
-    labelnames=["error_type"]
+    name="rul_prediction_errors_total", documentation="Total number of prediction errors", labelnames=["error_type"]
 )
 model_reload_counter = Counter(
-    name="model_reloads_total",
-    documentation="Total number of model reloads",
-    labelnames=["status", "model_version"]
+    name="model_reloads_total", documentation="Total number of model reloads", labelnames=["status", "model_version"]
 )
 model_reload_timestamp = Gauge(
     name="model_reload_timestamp_seconds",
     documentation="Timestamp of the last model reload",
-    labelnames=["status", "model_version"]
+    labelnames=["status", "model_version"],
 )
 
 
@@ -107,11 +103,15 @@ class PredictionService:
             self.expected_features = self.model_bundle.get_n_features()
             print(f"Model loaded: version {self.model_bundle.metadata.version}")
             model_reload_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc()
-            model_reload_timestamp.labels(status="success", model_version=self.model_bundle.metadata.version).set_to_current_time()
+            model_reload_timestamp.labels(
+                status="success", model_version=self.model_bundle.metadata.version
+            ).set_to_current_time()
         except Exception as e:
             print(f"Failed to load model: {e}")
             model_reload_counter.labels(status="error", model_version=self.model_bundle.metadata.version).inc()
-            model_reload_timestamp.labels(status="error", model_version=self.model_bundle.metadata.version).set_to_current_time()
+            model_reload_timestamp.labels(
+                status="error", model_version=self.model_bundle.metadata.version
+            ).set_to_current_time()
             raise
 
     def _setup_file_watcher(self) -> None:
@@ -144,16 +144,16 @@ class PredictionService:
         start_time = time.time()
         try:
             if data is None:
-                raise BadInput("No data provided")
+                raise BadInput("No data provided") from None
 
             try:
                 validated_data = PredictionInput.model_validate(data)
             except ValidationError as e:
                 error_counter.labels(error_type="validation_error").inc()
                 print(f"Input validation error: {str(e)}")
-                raise BadInput(f"Input validation error: {str(e)}")
+                raise BadInput(f"Input validation error: {str(e)}") from e
 
-            #print(f"Received data type: {type(validated_data)}")
+            # print(f"Received data type: {type(validated_data)}")
             # print(f"Data content: {data}")
 
             samples = validated_data.rows
@@ -197,7 +197,9 @@ class PredictionService:
             else:
                 predictions_list = [float(predictions)]
 
-            prediction_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc(amount=len(predictions_list))
+            prediction_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc(
+                amount=len(predictions_list)
+            )
 
             # Record metrics
             prediction_service_counter.labels(status="success", model_version=self.model_bundle.metadata.version).inc()

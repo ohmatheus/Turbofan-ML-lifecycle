@@ -9,6 +9,7 @@ from src.utils.config import config
 
 MODEL_VERSION = "1.0"
 
+
 def log_model_metadata(metadata: ModelMetadata) -> None:
     meta = {
         "model_type": metadata.model_type,

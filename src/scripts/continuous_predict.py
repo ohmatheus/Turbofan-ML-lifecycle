@@ -1,9 +1,9 @@
-import concurrent.futures
 import random
+import threading
 import time
 from collections.abc import Hashable, Mapping
 from datetime import datetime
-from typing import Any, Literal, Protocol, TypedDict, cast
+from typing import Any
 
 import bentoml
 import numpy as np
@@ -15,7 +15,7 @@ from src.utils.config import config
 Payload = dict[str, list[dict[Hashable, Any]]]
 
 
-def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event) -> None:
+def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event: threading.Event) -> None:
     prediction_client = bentoml.SyncHTTPClient("http://localhost:3000")
     feedback_client = bentoml.SyncHTTPClient("http://localhost:3001")
 
@@ -54,7 +54,9 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event) -> None:
                 rmse = rmse_score(np.asarray(y_actual), np.asarray(y_pred))
                 engine_ids = selected_rows["unit_number"].astype(str)
 
-                print(f"User {user_id} - Request {request_count}: Prediction successful ({prediction_time:.3f}s) - Test RMSE: {rmse:.2f}")
+                print(
+                    f"User {user_id} - Request {request_count}: Prediction successful ({prediction_time:.3f}s) - Test RMSE: {rmse:.2f}"
+                )
 
                 feedback_start = time.time()
                 for i, (actual, predicted, engine_id) in enumerate(zip(y_actual, y_pred, engine_ids, strict=True)):
@@ -68,7 +70,7 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event) -> None:
                             "model_version": result.get("model_version"),
                             "user_id": user_id,
                             "request_id": request_id,
-                            "continuous_test": True
+                            "continuous_test": True,
                         },
                     }
 
@@ -78,7 +80,11 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, stop_event) -> None:
                 total_time = prediction_time + feedback_time
 
                 print(
-                    f"User {user_id} - Request {request_count}: Feedback submitted for {len(y_pred)} predictions ({feedback_time:.3f}s) - Total: {total_time:.3f}s")
+                    f"User {user_id} - Request {request_count}: Feedback submitted for {len(y_pred)} predictions ({feedback_time:.3f}s) - Total: {total_time:.3f}s"
+                )
+                print(
+                    f"Feedback response {feedback_response['status']} - id :{feedback_response['feedback_id']} : {feedback_response['message']}"
+                )
 
             except Exception as e:
                 print(f"User {user_id} - Request {request_count}: Error - {str(e)}")
@@ -116,21 +122,17 @@ def continuous_predict() -> None:
     num_workers = config.NUM_USERS
     print(f"Starting continuous prediction simulation with {num_workers} users")
     print(
-        f"Each user will select 1-{config.CONTINUOUS_PREDICT_RANGE} random rows from {len(test_last_rows)} available test rows")
+        f"Each user will select 1-{config.CONTINUOUS_PREDICT_RANGE} random rows from {len(test_last_rows)} available test rows"
+    )
     print("Press Ctrl+C to stop the simulation\n")
 
     # Create a stop event for graceful shutdown
-    import threading
     stop_event = threading.Event()
 
     # Start user simulation threads
     threads = []
     for user_id in range(num_workers):
-        thread = threading.Thread(
-            target=simulate_user,
-            args=(user_id, test_last_rows, stop_event),
-            daemon=True
-        )
+        thread = threading.Thread(target=simulate_user, args=(user_id, test_last_rows, stop_event), daemon=True)
         thread.start()
         threads.append(thread)
         print(f"Started user {user_id}")
