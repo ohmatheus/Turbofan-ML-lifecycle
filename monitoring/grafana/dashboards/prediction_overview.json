@@ -38,7 +38,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 3,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -130,7 +130,7 @@
             "uid": "ff405e8nt7bpcd"
           },
           "editorMode": "builder",
-          "expr": "rate(predictions_total{instance=\"host.docker.internal:3000\"}[30s])",
+          "expr": "rate(predictions_total{instance=\"prediction-service:3000\"}[30s])",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -228,6 +228,21 @@
                 }
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "{error_type=\"validation_error\", instance=\"prediction-service:3000\", job=\"prediction-api\"}"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "semi-dark-red",
+                  "mode": "fixed"
+                }
+              }
+            ]
           }
         ]
       },
@@ -254,8 +269,8 @@
       "pluginVersion": "12.2.1",
       "targets": [
         {
-          "editorMode": "code",
-          "expr": "sum(rate(predictions_service_call_total{status=\"success\", instance=\"host.docker.internal:3000\"}[30s])) without (model_version)",
+          "editorMode": "builder",
+          "expr": "sum without(model_version) (rate(predictions_service_call_total{status=\"success\", instance=\"prediction-service:3000\"}[30s]))",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -266,7 +281,7 @@
             "uid": "ff405e8nt7bpcd"
           },
           "editorMode": "builder",
-          "expr": "rate(rul_prediction_errors_total{instance=\"host.docker.internal:3000\"}[30s])",
+          "expr": "rate(rul_prediction_errors_total{instance=\"prediction-service:3000\"}[30s])",
           "hide": false,
           "instant": false,
           "legendFormat": "__auto",
@@ -293,5 +308,5 @@
   "timezone": "browser",
   "title": "Prediction overview",
   "uid": "ad2v2fs",
-  "version": 2
+  "version": 1
 }
