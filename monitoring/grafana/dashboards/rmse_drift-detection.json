@@ -36,7 +36,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 2,
+  "id": 3,
   "links": [],
   "panels": [
     {
@@ -132,7 +132,7 @@
           },
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "rate(rul_rmse_sum{job=\"feedback-api\"}[15s]) / (rate(rul_rmse_count[15s]))",
+          "expr": "rate(rul_rmse_sum{job=\"feedback-api\"}[15s]) / (rate(rul_rmse_count{job=\"feedback-api\"}[15s]))",
           "hide": false,
           "instant": false,
           "interval": "",
@@ -160,5 +160,5 @@
   "timezone": "browser",
   "title": "RMSE - Drift Detection",
   "uid": "ad5r62c",
-  "version": 3
+  "version": 1
 }
