@@ -1,0 +1,139 @@
+
+version: '3.8'
+
+
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.18.0
+    container_name: turbofan-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+      - ./mlartifacts:/mlflow/mlartifacts
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri file:///mlflow/mlruns
+      --default-artifact-root file:///mlflow/mlartifacts
+    networks:
+      - turbofan-network
+    restart: unless-stopped
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: turbofan-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - turbofan-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: turbofan-grafana
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true # free for all, NEVER IN PRODUCTION!
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/dashboards:ro
+    networks:
+      - turbofan-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+
+  prediction-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.prediction
+    container_name: turbofan-prediction-service
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src:ro
+      - ./models:/app/models:ro
+      - ./data:/app/data:ro
+      - ./.env:/app/.env:ro
+    environment:
+      - BENTOML_PORT=3000
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+    networks:
+      - turbofan-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/readyz" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+  feedback-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.feedback
+    container_name: turbofan-feedback-service
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./src:/app/src:ro
+      - ./data/feedbacks:/app/data/feedbacks
+      - ./data:/app/data:ro
+      - ./.env:/app/.env:ro
+    environment:
+      - BENTOML_PORT=3001
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+    networks:
+      - turbofan-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3001/readyz" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+volumes:
+  prometheus_data:
+    name: turbofan-prometheus-data
+  grafana_data:
+    name: turbofan-grafana-data
+
+networks:
+  turbofan-network:
+    name: turbofan-network
+    driver: bridge
