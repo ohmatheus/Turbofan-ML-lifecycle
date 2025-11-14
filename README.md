@@ -5,6 +5,7 @@ Simple playground for turbofan Remaining Useful Life (RUL) prediction and relate
 ## Requirements
 - Python 3.13.5
 - Kaggle token .json on your computer
+- Docker (>= 3.8) installed
 
 ## Setup (using uv)
 Create an isolated environment, install uv into it, then sync dependencies.
