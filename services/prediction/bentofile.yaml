@@ -1,38 +1,21 @@
-service: "service:PredictionService"
+service: "services.prediction.service:PredictionService"
 labels:
-  owner: team-max
-  version: "1.0.0"
-  project: turbofan-predictive-maintenance
-description: "RUL Prediction Service"
-
-envs:
-  - name: BENTOML_PORT
-    value: "3000"
-  - name: LOG_LEVEL
-    value: "INFO"
-  - name: PROMETHEUS_MULTIPROC_DIR
-    value: "/tmp"
-
-include:
-  - "service.py"
-  - "src/"
-exclude:
-  - "__pycache__/"
-  - "*.pyc"
-  - ".git"
+  owner: turbofan-team
+  stage: production
+description: "RUL Prediction Service for Turbofan Engines"
 python:
-  packages:
-    - bentoml
-    - pandas
-    - numpy
-    - scikit-learn
-    - pydantic
-    - joblib
+  requirements_txt: "./requirements.txt"
   lock_packages: true
+include:
+  - "services/prediction/"
+  - "src/"
+  - ".env"
+models:
+  - "data/models/full_sandbox.joblib"
 docker:
-  distro: debian
   python_version: "3.13"
   system_packages:
-    - git
-
-
+    - curl
+  env:
+    PROMETHEUS_MULTIPROC_DIR: "/tmp/prometheus"
+  setup_script: "mkdir -p /tmp/prometheus"

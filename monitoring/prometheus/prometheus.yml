@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'prediction-api'
+    static_configs:
+      - targets: ['prediction-service:3000']
+      #- targets: ['host.docker.internal:3000']
+    scrape_interval: 5s
+    metrics_path: '/metrics'
+
+  - job_name: 'feedback-api'
+    static_configs:
+      - targets: ['feedback-service:3001']
+      #- targets: ['host.docker.internal:3001']
+    scrape_interval: 5s
+    metrics_path: '/metrics'

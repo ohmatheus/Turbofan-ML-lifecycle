@@ -1,0 +1,36 @@
+FROM python:3.13.5-slim
+
+WORKDIR /app
+
+# Install system dependencies including curl for healthcheck
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies using uv
+RUN uv sync --frozen --no-dev
+
+# Copy application code
+COPY src/ ./src/
+COPY services/ ./services/
+COPY .env .env
+
+# Create necessary directories
+RUN mkdir -p /app/data/models /app/data/raw /app/data/processed /app/data/prepared /app/data/ready /tmp/prometheus
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+
+# Run BentoML service using uv
+CMD ["uv", "run", "--no-dev", "bentoml", "serve", "services.prediction.service:PredictionService", "--host", "0.0.0.0", "--port", "3000"]

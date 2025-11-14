@@ -3,22 +3,29 @@
 Simple playground for turbofan Remaining Useful Life (RUL) prediction and related tooling.
 
 ## Requirements
-- Python 3.13
+- Python 3.13.5
 - Kaggle token .json on your computer
+- Docker (>= 3.8) installed
 
 ## Setup (using uv)
 Create an isolated environment, install uv into it, then sync dependencies.
 ```bash
 python -m venv .venv
+```
+```bash
 # Activate the venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
+```
+```bash
 # Install uv inside the venv
 python -m pip install uv
+```
+```bash
 # Install project dependencies
 uv sync
 ```
 
-## Get the data (get Token - call `initialize`)
+## Get the data (get Token + call `initialize`)
 1) Visit https://www.kaggle.com/settings while logged in
 2) In the Account tab, scroll to the API section
 3) Click "Create New Token" to download kaggle.json
