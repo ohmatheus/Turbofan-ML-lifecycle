@@ -94,7 +94,7 @@ def main() -> None:
         val_rmse = val_rmse if val_rmse is not None else -1
         mlflow.log_metric("validation_rmse", val_rmse)
 
-        model_name = "full_sandbox"
+        model_name = "random_forest_model"
         mlflow.log_param("model_version", model_name)
         model_path = config.MODELS_PATH
         model_path.mkdir(exist_ok=True)
