@@ -3,7 +3,7 @@ import time
 import threading
 from pathlib import Path
 from typing import Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import bentoml
 import numpy as np
@@ -86,7 +86,7 @@ class DriftDetectorService:
         if not self.feedback_storage_path.exists():
             return []
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         window_start = now - timedelta(seconds=window_seconds)
 
         records: list[dict[str, Any]] = []
@@ -106,8 +106,14 @@ class DriftDetectorService:
                     continue
 
                 try:
-                    # feedback_timestamp is stored as ISO string; parse as UTC-naive
-                    ts = datetime.fromisoformat(ts_str.replace("Z", ""))
+                    # Parse as UTC-aware datetime
+                    # handle both "...Z" and explicit offset forms
+                    if ts_str.endswith("Z"):
+                        ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    else:
+                        ts = datetime.fromisoformat(ts_str)
+                    if ts.tzinfo is None:
+                        ts = ts.replace(tzinfo=timezone.utc)
                 except ValueError:
                     continue
 
@@ -145,7 +151,7 @@ class DriftDetectorService:
 
         # Update in-memory status
         self._last_status = DriftStatus(
-            last_check_time=datetime.utcnow().isoformat(),
+            last_check_time=datetime.now(timezone.utc).isoformat(),
             current_rmse=float(current_rmse),
             baseline_rmse=float(self._baseline_rmse),
             alert=is_alert,
