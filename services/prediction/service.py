@@ -90,7 +90,7 @@ class PredictionService:
 
     def __init__(self) -> None:
         print(f"TEST ENV : {config.TEST_ENV}")
-        self.model_name = "full_sandbox"
+        self.model_name = "random_forest_model"
         self.model_path = config.MODELS_PATH
         self.model_file = self.model_path / f"{self.model_name}.joblib"
         self._model_lock = threading.RLock()

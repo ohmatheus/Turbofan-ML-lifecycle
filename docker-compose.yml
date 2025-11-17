@@ -1,11 +1,9 @@
 
-version: '3.8'
-
-
 services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.18.0
     container_name: turbofan-mlflow
+    user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "5000:5000"
     volumes:
@@ -16,7 +14,8 @@ services:
       --host 0.0.0.0
       --port 5000
       --backend-store-uri file:///mlflow/mlruns
-      --default-artifact-root file:///mlflow/mlartifacts
+      --serve-artifacts
+      --artifacts-destination /mlflow/mlartifacts
     networks:
       - turbofan-network
     restart: unless-stopped

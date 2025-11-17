@@ -21,9 +21,11 @@ class TPMSettings(BaseSettings):
 
     TEST_ENV: str = "dev"
 
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server/ui` to start server
+    MLFLOW_TRACKING_URI: str = "http://localhost:5000"
+    UID: int = 1000
+    GID: int = 1000
 
-    CONTINUOUS_PREDICT_RANGE: int = 30  # random from 1-x number of rows sent to prediction
+    CONTINUOUS_PREDICT_RANGE: int = 30  # random count from 1-x number of rows sent to prediction
     NUM_USERS: int = 10
     SIMULATE_ERRORS: bool = False
 
