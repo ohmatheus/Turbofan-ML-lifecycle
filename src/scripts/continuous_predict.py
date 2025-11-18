@@ -55,7 +55,9 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, application_start: floa
 
                 result: Mapping[str, Any] = {}
                 if config.SIMULATE_ERRORS and random.randint(1, 10) == 1:
-                    result = prediction_client.predict("")  # simulate 'bad_input' error, we could simulate other types of errors
+                    result = prediction_client.predict(
+                        ""
+                    )  # simulate 'bad_input' error, we could simulate other types of errors
                 else:
                     result = prediction_client.predict(data)
 
@@ -70,7 +72,7 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, application_start: floa
                 engine_ids = selected_rows["unit_number"].astype(str)
 
                 print(
-                    f"User {user_id} - Request {request_count} - Test RMSE: {rmse:.2f}" #this rmse is just for debug purpose
+                    f"User {user_id} - Request {request_count} - Test RMSE: {rmse:.2f}"  # this rmse is just for debug purpose
                 )
 
                 for i, (actual, predicted, engine_id) in enumerate(zip(y_actual, y_pred, engine_ids, strict=True)):
@@ -90,9 +92,7 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, application_start: floa
 
                     feedback_response = feedback_client.submit_feedback(feedback_data)
 
-                print(
-                    f"User {user_id} - Request {request_count}: Feedback submitted for {len(y_pred)} predictions."
-                )
+                print(f"User {user_id} - Request {request_count}: Feedback submitted for {len(y_pred)} predictions.")
                 print(
                     f"Feedback response {feedback_response['status']} - id :{feedback_response['feedback_id']} : {feedback_response['message']}"
                 )
@@ -141,11 +141,12 @@ def continuous_predict() -> None:
 
     application_start: float = time.time()  # shared "timer start"
 
-
     # Start user simulation threads
     threads = []
     for user_id in range(num_workers):
-        thread = threading.Thread(target=simulate_user, args=(user_id, test_last_rows, application_start, stop_event), daemon=True)
+        thread = threading.Thread(
+            target=simulate_user, args=(user_id, test_last_rows, application_start, stop_event), daemon=True
+        )
         thread.start()
         threads.append(thread)
         print(f"Started user {user_id}")

@@ -58,8 +58,8 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 46,
-            "gradientMode": "hue",
+            "fillOpacity": 8,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
@@ -101,7 +101,56 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "RMSE alert threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Alert"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -130,18 +179,47 @@
             "type": "prometheus",
             "uid": "ff405e8nt7bpcd"
           },
-          "editorMode": "builder",
+          "editorMode": "code",
           "exemplar": false,
-          "expr": "rate(rul_rmse_sum{job=\"feedback-api\"}[15s]) / (rate(rul_rmse_count{job=\"feedback-api\"}[15s]))",
+          "expr": "min without (pid) (\n    rul_drift_rmse_current{job=\"driftdetector-api\"}\n  )",
           "hide": false,
           "instant": false,
           "interval": "",
-          "legendFormat": "__auto",
+          "legendFormat": "RMSE",
           "range": true,
-          "refId": "RMSE mean 15s"
+          "refId": "RMSE last minute"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_rmse_alert_threshold{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "RMSE alert threshold",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_rmse_alert{job=\"driftdetector-api\"} * 10 > 0\n  )",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "Alert",
+          "range": true,
+          "refId": "Alert"
         }
       ],
-      "title": "RMSE - mean last 15s",
+      "title": "RMSE last minute",
       "type": "timeseries"
     }
   ],
@@ -160,5 +238,5 @@
   "timezone": "browser",
   "title": "RMSE - Drift Detection",
   "uid": "ad5r62c",
-  "version": 1
+  "version": 2
 }

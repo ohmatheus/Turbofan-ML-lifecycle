@@ -2,14 +2,15 @@ import mlflow
 import pandas as pd
 import requests
 from requests.exceptions import RequestException, Timeout
-
-from src.models.model_bundle import ModelMetadata, load_model_bundle, save_model_bundle
-from src.models.random_forest_utils import EXCLUDE_COLS, eval_rul, fit_rf, plot_rmse, Metrics
-from src.utils.config import config
 from sklearn.pipeline import Pipeline
+
+from src.models.model_bundle import ModelMetadata, save_model_bundle
+from src.models.random_forest_utils import EXCLUDE_COLS, Metrics, eval_rul, fit_rf, plot_rmse
+from src.utils.config import config
 
 MODEL_VERSION = "1.0"
 MODEL_NAME = "random_forest_model"
+
 
 def log_model_metadata(metadata: ModelMetadata) -> None:
     meta = {
@@ -95,17 +96,17 @@ def main() -> None:
     train_df = pd.read_csv(config.READY_DATA_PATH / "train.csv", index_col=False)
     test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
 
-    unique_engines = train_df['unit_number'].unique()
+    unique_engines = train_df["unit_number"].unique()
     # Take first X% of engine units `unit_number`
     num_engines = int(len(unique_engines) * config.DEMO_FIRST_TRAIN_SIZE)
     selected_engines = unique_engines[:num_engines]
 
     # Filter to get all rows for those unit_number
-    train_filtered = train_df[train_df['unit_number'].isin(selected_engines)]
-    test_filtered = test_df[test_df['unit_number'].isin(selected_engines)]
+    train_filtered = train_df[train_df["unit_number"].isin(selected_engines)]
+    test_filtered = test_df[test_df["unit_number"].isin(selected_engines)]
     feature_cols = [col for col in train_filtered.columns if col not in EXCLUDE_COLS]
 
-    #mlflow.end_run()
+    # mlflow.end_run()
     with mlflow.start_run(nested=True):
         mlflow.set_tag("Model Type", "Random Forest")
         mlflow.set_tag("Task", "RUL Prediction")
@@ -131,7 +132,6 @@ def main() -> None:
         model_path.mkdir(exist_ok=True)
         model_file = model_path / f"{model_name}.joblib"
 
-
         metadata = ModelMetadata(
             model_type="RandomForestRegressor",
             feature_names=feature_cols,
@@ -145,7 +145,6 @@ def main() -> None:
         log_model_metadata(metadata)
 
         print(f"MLflow run completed. Validation RMSE: {val_rmse:.4f}")
-
 
 
 if __name__ == "__main__":

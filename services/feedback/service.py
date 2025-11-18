@@ -17,7 +17,7 @@ class FeedbackInput(BaseModel):
     prediction_id: str
     predicted_rul: float
     actual_rul: float
-    engine_id: str
+    engine_id: int
     prediction_timestamp: str
     feedback_timestamp: str | None = None
     metadata: dict[str, Any] = {}

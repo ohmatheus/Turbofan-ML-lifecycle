@@ -36,14 +36,14 @@ def evaluate_drift(
       - distribution drift (PSI, KS) across many features
       - performance drift (RMSE vs baseline)
     """
-    # --- Per-feature alert/warn lists (useful for diagnostics) ---
+    # Per-feature alert/warn lists (useful for diagnostics)
     psi_alert_features = [f for f, v in psi_per_feature.items() if v >= thresholds.psi_alert]
     psi_warn_features = [f for f, v in psi_per_feature.items() if thresholds.psi_warn <= v < thresholds.psi_alert]
 
     ks_alert_features = [f for f, v in ks_per_feature.items() if v >= thresholds.ks_alert]
     ks_warn_features = [f for f, v in ks_per_feature.items() if thresholds.ks_warn <= v < thresholds.ks_alert]
 
-    # --- Global / average drift metrics ---
+    # Global / average drift metrics
     n_features = len(psi_per_feature) if psi_per_feature else 0
     psi_values = list(psi_per_feature.values())
     ks_values = list(ks_per_feature.values())
@@ -56,7 +56,7 @@ def evaluate_drift(
     psi_alert_ratio = len(psi_alert_features) / n_features if n_features > 0 else 0.0
     ks_alert_ratio = len(ks_alert_features) / n_features if n_features > 0 else 0.0
 
-    # --- Heuristics for "global" drift ---
+    # Heuristics for "global" drift
     psi_alert_ratio_threshold = 0.05
     avg_alert_ratio_threshold = 0.05
     max_psi_alert_threshold = thresholds.psi_alert  # if any feature is really high

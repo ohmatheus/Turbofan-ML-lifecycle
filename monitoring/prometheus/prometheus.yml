@@ -20,3 +20,10 @@ scrape_configs:
       #- targets: ['host.docker.internal:3001']
     scrape_interval: 5s
     metrics_path: '/metrics'
+
+  - job_name: 'driftdetector-api'
+    static_configs:
+      #- targets: [ 'driftdetector-service:3003' ]
+      - targets: [ 'host.docker.internal:3003' ]
+    scrape_interval: 5s
+    metrics_path: '/metrics'

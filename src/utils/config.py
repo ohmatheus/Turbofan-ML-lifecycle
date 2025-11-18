@@ -29,9 +29,8 @@ class TPMSettings(BaseSettings):
     NUM_USERS: int = 10
     SIMULATE_ERRORS: bool = False
 
-    DEMO_DURATION_MINUTES: int = 10 # will gradually increase from `DEMO_FIRST_TRAIN_SIZE` to 1.0 in X minutes
+    DEMO_DURATION_MINUTES: int = 10  # will gradually increase from `DEMO_FIRST_TRAIN_SIZE` to 1.0 in X minutes
     DEMO_FIRST_TRAIN_SIZE: float = 0.1
-
 
 
 config = TPMSettings()

@@ -1,36 +1,41 @@
 import json
-import time
 import threading
+import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
-from datetime import datetime, timedelta, timezone
 
 import bentoml
 import numpy as np
+import pandas as pd
 from prometheus_client import Counter, Gauge
 from pydantic import BaseModel
 
-from src.models.random_forest_utils import rmse_score
+from src.drift.logic import evaluate_drift
+from src.drift.metrics import compute_feature_ks, compute_feature_psi
+from src.drift.thresholds import DEFAULT_THRESHOLDS
+from src.models.random_forest_utils import EXCLUDE_COLS, rmse_score
 from src.utils.config import config
 
-# How often to run drift checks (seconds)
+TEMP_TRAIN_RATIO = 0.1
 DRIFT_CHECK_INTERVAL_SECONDS = 15
 
-drift_checks_total = Counter(
-    name="rul_drift_checks_total",
-    documentation="Total number of drift checks performed",
+
+drift_checks_total = Counter("rul_drift_checks_total", "Total number of drift checks performed")
+drift_rmse_current = Gauge("rul_drift_rmse_current", "Current RMSE computed from recent feedback")
+drift_rmse_baseline = Gauge("rul_drift_rmse_baseline", "Baseline RMSE used for drift comparison")
+drift_rmse_alert_threshold = Gauge("rul_drift_rmse_alert_threshold", "Alert RMSE used for retraining")
+drift_rmse_alert = Gauge("rul_drift_rmse_alert", "1 if current RMSE is above alert threshold, 0 otherwise")
+
+psi_mean_gauge = Gauge(
+    "rul_drift_psi_mean",
+    "Mean PSI across all features",
+    labelnames=("dataset",),
 )
-drift_rmse_current = Gauge(
-    name="rul_drift_rmse_current",
-    documentation="Current RMSE computed from recent feedback",
-)
-drift_rmse_baseline = Gauge(
-    name="rul_drift_rmse_baseline",
-    documentation="Baseline RMSE used for drift comparison",
-)
-drift_rmse_alert = Gauge(
-    name="rul_drift_rmse_alert",
-    documentation="1 if current RMSE is above alert threshold, 0 otherwise",
+ks_mean_gauge = Gauge(
+    "rul_drift_ks_mean",
+    "Mean KS statistic across all features",
+    labelnames=("dataset",),
 )
 
 
@@ -41,137 +46,182 @@ class DriftStatus(BaseModel):
     alert: bool = False
 
 
-@bentoml.service(
-    resources={"cpu": "1", "memory": "1Gi"},
-    traffic={"timeout": 5, "concurrency": 50},
-)
+def _now_utc_iso() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+def _feedback_window(path: Path, seconds: int) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    window_start = datetime.now(UTC) - timedelta(seconds=seconds)
+    out: list[dict[str, Any]] = []
+    with open(path) as f:
+        for line in f:
+            if not (line := line.strip()):
+                continue
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not (ts := rec.get("feedback_timestamp")):
+                continue
+            try:
+                ts_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if ts_dt.tzinfo is None:
+                    ts_dt = ts_dt.replace(tzinfo=UTC)
+            except ValueError:
+                continue
+            if ts_dt >= window_start:
+                out.append(rec)
+    return out
+
+
+def _compute_rmse(feedback: list[dict[str, Any]]) -> float:
+    y_true = np.asarray([fb["actual_rul"] for fb in feedback], dtype=float)
+    y_pred = np.asarray([fb["predicted_rul"] for fb in feedback], dtype=float)
+    return float(rmse_score(y_true, y_pred))
+
+
+def _training_subset(train_df: pd.DataFrame) -> pd.DataFrame:
+    size = int(len(train_df) * TEMP_TRAIN_RATIO)
+    return train_df.iloc[:size]
+
+
+def _feature_columns(df: pd.DataFrame) -> list[str]:
+    return [c for c in df.columns if c not in EXCLUDE_COLS]
+
+
+def _recent_units_df(df: pd.DataFrame, unit_ids: set[int]) -> pd.DataFrame:
+    return df[df["unit_number"].isin(unit_ids)]
+
+
+def _upto_max_unit_df(df: pd.DataFrame, max_unit: int) -> pd.DataFrame:
+    return df.loc[df["unit_number"] <= max_unit].copy()
+
+
+def _compute_psi_ks(
+    baseline_df: pd.DataFrame,
+    current_df: pd.DataFrame,
+    features: list[str],
+) -> tuple[dict[str, float], dict[str, float]]:
+    psi = compute_feature_psi(baseline_df, current_df, features)
+    ks = compute_feature_ks(baseline_df, current_df, features)
+    return psi, ks
+
+
+def _set_rmse_metrics(current: float, baseline: float, alert_thresh: float, alert: bool) -> None:
+    drift_checks_total.inc()
+    drift_rmse_current.set(current)
+    drift_rmse_baseline.set(baseline)
+    drift_rmse_alert_threshold.set(alert_thresh)
+    drift_rmse_alert.set(1.0 if alert else 0.0)
+
+
+def _set_mean_drift_metrics(dataset: str, avg_psi: float, avg_ks: float) -> None:
+    psi_mean_gauge.labels(dataset=dataset).set(avg_psi)
+    ks_mean_gauge.labels(dataset=dataset).set(avg_ks)
+
+
+@bentoml.service(resources={"cpu": "1", "memory": "1Gi"}, traffic={"timeout": 5, "concurrency": 50})
 class DriftDetectorService:
     def __init__(self) -> None:
         self.feedback_storage_path = Path(config.FEEDBACK_PATH / "rul_feedback.jsonl")
         self.feedback_storage_path.parent.mkdir(parents=True, exist_ok=True)
 
         self._baseline_rmse: float | None = getattr(config, "BASELINE_RMSE", None)
-        #todo baseline rmse will be available via the retraining service
-
-
-
+        self.train_df = pd.read_csv(config.READY_DATA_PATH / "train.csv", index_col=False)
+        self.test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
         self._last_status = DriftStatus()
 
-        # Set initial Prometheus values if baseline exists
         if self._baseline_rmse is not None:
             drift_rmse_baseline.set(self._baseline_rmse)
 
         self._start_background_loop()
 
     def _start_background_loop(self) -> None:
-
-        thread = threading.Thread(target=self._drift_loop, daemon=True)
-        thread.start()
+        threading.Thread(target=self._drift_loop, daemon=True).start()
 
     def _drift_loop(self) -> None:
-        """Internal loop that runs drift checks at a fixed interval."""
         while True:
             try:
                 self._run_drift_check()
             except Exception as exc:  # noqa: BLE001
-                # Log and continue; we don't want to kill the loop
                 print(f"[DriftDetector] Error during drift check: {exc}")
+                drift_checks_total.inc()
+                drift_rmse_current.set(0)
+                drift_rmse_baseline.set(0)
+                drift_rmse_alert_threshold.set(0)
+                drift_rmse_alert.set(0)
             time.sleep(DRIFT_CHECK_INTERVAL_SECONDS)
 
-    def _load_recent_feedback(self, window_seconds: int = 60) -> list[dict[str, Any]]:
-        """
-        Load feedback records whose feedback_timestamp is within the last `window_seconds`.
-        Default is last 60 seconds.
-        """
-        if not self.feedback_storage_path.exists():
-            return []
-
-        now = datetime.now(timezone.utc)
-        window_start = now - timedelta(seconds=window_seconds)
-
-        records: list[dict[str, Any]] = []
-        with open(self.feedback_storage_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError:
-                    continue  # skip malformed lines
-
-                ts_str = record.get("feedback_timestamp")
-                if not ts_str:
-                    continue
-
-                try:
-                    # Parse as UTC-aware datetime
-                    # handle both "...Z" and explicit offset forms
-                    if ts_str.endswith("Z"):
-                        ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-                    else:
-                        ts = datetime.fromisoformat(ts_str)
-                    if ts.tzinfo is None:
-                        ts = ts.replace(tzinfo=timezone.utc)
-                except ValueError:
-                    continue
-
-                if ts >= window_start:
-                    records.append(record)
-
-        return records
-
     def _run_drift_check(self) -> None:
-        """Compute RMSE from recent feedback and update metrics/status."""
-        feedback_records = self._load_recent_feedback(window_seconds=60)
-        if not feedback_records:
+        feedback = _feedback_window(self.feedback_storage_path, seconds=60)
+        if not feedback:
             print("[DriftDetector] No feedback records found, skipping drift check")
             return
 
-        y_true = np.asarray([fb["actual_rul"] for fb in feedback_records], dtype=float)
-        y_pred = np.asarray([fb["predicted_rul"] for fb in feedback_records], dtype=float)
-
-        current_rmse = rmse_score(y_true, y_pred)
-
-        # Initialize baseline if not set yet
+        current_rmse = _compute_rmse(feedback)
         if self._baseline_rmse is None:
             self._baseline_rmse = float(current_rmse)
             drift_rmse_baseline.set(self._baseline_rmse)
 
-        # Simple alert heuristic: 30% worse than baseline
-        alert_threshold_factor = 1.3
-        is_alert = bool(current_rmse > self._baseline_rmse * alert_threshold_factor)
+        alert_thr = self._baseline_rmse * DEFAULT_THRESHOLDS.rmse_alert_factor
+        is_alert = current_rmse > alert_thr
+        _set_rmse_metrics(current_rmse, self._baseline_rmse, alert_thr, bool(is_alert))
 
-        # Update Prometheus metrics
-        drift_checks_total.inc()
-        drift_rmse_current.set(current_rmse)
-        drift_rmse_baseline.set(self._baseline_rmse)
-        drift_rmse_alert.set(1.0 if is_alert else 0.0)
+        unit_ids = {fb["engine_id"] for fb in feedback}
+        max_unit = max(unit_ids)
 
-        # Update in-memory status
+        train_used = _training_subset(self.train_df)
+        feats = _feature_columns(self.train_df)
+
+        train_up_to = _upto_max_unit_df(self.train_df, max_unit)
+        test_recent = _recent_units_df(self.test_df, unit_ids)
+
+        psi_train, ks_train = _compute_psi_ks(train_used, train_up_to, feats)
+        psi_test, ks_test = _compute_psi_ks(train_used, test_recent, feats)
+
+        drift_report_train = evaluate_drift(
+            psi_per_feature=psi_train,
+            ks_per_feature=ks_train,
+            current_rmse=current_rmse,
+            baseline_rmse=self._baseline_rmse,
+            thresholds=DEFAULT_THRESHOLDS,
+        )
+
+        drift_report_test = evaluate_drift(
+            psi_per_feature=psi_test,
+            ks_per_feature=ks_test,
+            current_rmse=current_rmse,
+            baseline_rmse=self._baseline_rmse,
+            thresholds=DEFAULT_THRESHOLDS,
+        )
+
+        _set_mean_drift_metrics(
+            "train",
+            float(drift_report_train["psi"]["avg_psi"]),
+            float(drift_report_train["ks"]["avg_ks"]),
+        )
+        _set_mean_drift_metrics(
+            "test",
+            float(drift_report_test["psi"]["avg_psi"]),
+            float(drift_report_test["ks"]["avg_ks"]),
+        )
+
         self._last_status = DriftStatus(
-            last_check_time=datetime.now(timezone.utc).isoformat(),
+            last_check_time=_now_utc_iso(),
             current_rmse=float(current_rmse),
             baseline_rmse=float(self._baseline_rmse),
-            alert=is_alert,
+            alert=bool(is_alert),
         )
 
         print(
             f"[DriftDetector] Drift check at {self._last_status.last_check_time}: "
-            f"current_rmse={current_rmse:.4f}, "
-            f"baseline_rmse={self._baseline_rmse:.4f}, "
-            f"alert={is_alert}",
+            f"current_rmse={current_rmse:.4f}, baseline_rmse={self._baseline_rmse:.4f}, alert={bool(is_alert)}"
         )
-
-        # TODO: when is_alert is True, call retraining service /retrain endpoint.
 
     @bentoml.api
     def run_drift_check_now(self) -> dict[str, Any]:
-        """
-        Manually trigger a drift check and return the latest status.
-        For debugging or on-demand checks.
-        """
         self._run_drift_check()
         return self._last_status.model_dump()
 
