@@ -105,7 +105,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "RMSE alert threshold"
+              "options": "alert threshold"
             },
             "properties": [
               {
@@ -116,10 +116,6 @@
                 }
               },
               {
-                "id": "custom.fillOpacity",
-                "value": 0
-              },
-              {
                 "id": "custom.lineStyle",
                 "value": {
                   "dash": [
@@ -128,6 +124,10 @@
                   ],
                   "fill": "dash"
                 }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
               }
             ]
           },
@@ -146,19 +146,81 @@
               },
               {
                 "id": "custom.drawStyle",
-                "value": "bars"
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 19
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "baseline"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 2,
       "options": {
         "legend": {
           "calcs": [],
@@ -185,9 +247,39 @@
           "hide": false,
           "instant": false,
           "interval": "",
-          "legendFormat": "RMSE",
+          "legendFormat": "mean PSI",
           "range": true,
-          "refId": "RMSE last minute"
+          "refId": "mean PSI last minute"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_rmse_baseline{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "baseline",
+          "range": true,
+          "refId": "Baseline"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_rmse_warn_threshold{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "warn threshold",
+          "range": true,
+          "refId": "Warning threshold"
         },
         {
           "datasource": {
@@ -200,9 +292,9 @@
           "format": "time_series",
           "hide": false,
           "instant": false,
-          "legendFormat": "RMSE alert threshold",
+          "legendFormat": "alert threshold",
           "range": true,
-          "refId": "A"
+          "refId": "Alert threshold"
         },
         {
           "datasource": {
@@ -212,7 +304,7 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "min without (pid) (\n    rul_drift_rmse_alert{job=\"driftdetector-api\"} * 10 > 0\n  )",
-          "hide": false,
+          "hide": true,
           "instant": false,
           "legendFormat": "Alert",
           "range": true,
@@ -220,6 +312,468 @@
         }
       ],
       "title": "RMSE last minute",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alert threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Alert"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 19
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ff405e8nt7bpcd"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_psi_mean{job=\"driftdetector-api\"}\n  )",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "mean PSI-{{dataset}}",
+          "range": true,
+          "refId": "mean PSI last minute"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_psi_warn_threshold{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "warn threshold",
+          "range": true,
+          "refId": "Warning threshold"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_psi_alert_threshold{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "alert threshold",
+          "range": true,
+          "refId": "Alert threshold"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_psi_alert{job=\"driftdetector-api\"} > 0\n  )",
+          "hide": true,
+          "instant": false,
+          "legendFormat": "Alert",
+          "range": true,
+          "refId": "Alert"
+        }
+      ],
+      "title": "mean PSI last minute",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alert threshold"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "dark-red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Alert"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 19
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    5,
+                    5
+                  ],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.2.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ff405e8nt7bpcd"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_ks_mean{job=\"driftdetector-api\"}\n  )",
+          "hide": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "mean KS-{{dataset}}",
+          "range": true,
+          "refId": "mean PSI last minute"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_ks_warn_threshold{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "warn threshold",
+          "range": true,
+          "refId": "Warning threshold"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_ks_alert_threshold{job=\"driftdetector-api\"}\n  )",
+          "format": "time_series",
+          "hide": false,
+          "instant": false,
+          "legendFormat": "alert threshold",
+          "range": true,
+          "refId": "Alert threshold"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min without (pid) (\n    rul_drift_ks_alert{job=\"driftdetector-api\"} > 0\n  )",
+          "hide": true,
+          "instant": false,
+          "legendFormat": "Alert",
+          "range": true,
+          "refId": "Alert"
+        }
+      ],
+      "title": "mean KS last minute",
       "type": "timeseries"
     }
   ],

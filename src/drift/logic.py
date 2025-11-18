@@ -65,19 +65,20 @@ def evaluate_drift(
     avg_ks_alert_threshold = thresholds.ks_warn  # average KS is at least "warn"
     max_ks_alert_threshold = thresholds.ks_alert  # any feature in KS alert
 
-    has_psi_alert = (
-        psi_alert_ratio >= psi_alert_ratio_threshold and avg_psi >= avg_alert_ratio_threshold
-    ) or max_psi >= max_psi_alert_threshold
-
-    has_ks_alert = (
-        ks_alert_ratio >= ks_alert_ratio_threshold and avg_ks >= avg_ks_alert_threshold
-    ) or max_ks >= max_ks_alert_threshold
+    # has_psi_alert = (
+    #     psi_alert_ratio >= psi_alert_ratio_threshold and avg_psi >= avg_alert_ratio_threshold
+    # ) or max_psi >= max_psi_alert_threshold
+    has_psi_alert = avg_psi >= thresholds.psi_warn
+    # has_ks_alert = (
+    #     ks_alert_ratio >= ks_alert_ratio_threshold and avg_ks >= avg_ks_alert_threshold
+    # ) or max_ks >= max_ks_alert_threshold
+    has_ks_alert = avg_ks >= thresholds.ks_warn
 
     # --- RMSE drift ---
     rmse_warn = current_rmse > baseline_rmse * thresholds.rmse_warn_factor
     rmse_alert = current_rmse > baseline_rmse * thresholds.rmse_alert_factor
 
-    should_retrain = bool(has_psi_alert or has_ks_alert or rmse_alert)
+    should_retrain = bool(has_psi_alert or has_ks_alert or rmse_warn)
 
     return {
         "should_retrain": should_retrain,
