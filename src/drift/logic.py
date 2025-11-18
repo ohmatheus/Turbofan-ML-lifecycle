@@ -57,13 +57,13 @@ def evaluate_drift(
     ks_alert_ratio = len(ks_alert_features) / n_features if n_features > 0 else 0.0
 
     # Heuristics for "global" drift
-    psi_alert_ratio_threshold = 0.05
-    avg_alert_ratio_threshold = 0.05
-    max_psi_alert_threshold = thresholds.psi_alert  # if any feature is really high
-
-    ks_alert_ratio_threshold = 0.05
-    avg_ks_alert_threshold = thresholds.ks_warn  # average KS is at least "warn"
-    max_ks_alert_threshold = thresholds.ks_alert  # any feature in KS alert
+    # psi_alert_ratio_threshold = 0.05
+    # avg_alert_ratio_threshold = 0.05
+    # max_psi_alert_threshold = thresholds.psi_alert  # if any feature is really high
+    #
+    # ks_alert_ratio_threshold = 0.05
+    # avg_ks_alert_threshold = thresholds.ks_warn  # average KS is at least "warn"
+    # max_ks_alert_threshold = thresholds.ks_alert  # any feature in KS alert
 
     # has_psi_alert = (
     #     psi_alert_ratio >= psi_alert_ratio_threshold and avg_psi >= avg_alert_ratio_threshold

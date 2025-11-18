@@ -31,7 +31,7 @@ drift_rmse_alert = Gauge("rul_drift_rmse_alert", "1 if current RMSE is above ale
 psi_mean_gauge = Gauge(
     "rul_drift_psi_mean",
     "Mean PSI across all features",
-    labelnames=("dataset",), #todo remove
+    labelnames=("dataset",),  # todo remove
 )
 drift_psi_warn_threshold = Gauge("rul_drift_psi_warn_threshold", "Warning PSI used for retraining")
 drift_psi_alert_threshold = Gauge("rul_drift_psi_alert_threshold", "Alert PSI used for retraining")
@@ -40,7 +40,7 @@ drift_psi_alert = Gauge("rul_drift_psi_alert", "1 if current PSI is above alert 
 ks_mean_gauge = Gauge(
     "rul_drift_ks_mean",
     "Mean KS statistic across all features",
-    labelnames=("dataset",), #todo remove
+    labelnames=("dataset",),  # todo remove
 )
 drift_ks_warn_threshold = Gauge("rul_drift_ks_warn_threshold", "Warning PSI used for retraining")
 drift_ks_alert_threshold = Gauge("rul_drift_ks_alert_threshold", "Alert PSI used for retraining")
@@ -126,7 +126,15 @@ def _set_rmse_metrics(current: float, baseline: float, warn_thresh: float, alert
     drift_rmse_alert.set(1.0 if alert else 0.0)
 
 
-def _set_mean_drift_metrics(dataset: str, drift_psi_warn_thresh: float, drift_psi_alert_thresh: float, drift_ks_warn_thresh: float, drift_ks_alert_thresh: float, avg_psi: float, avg_ks: float) -> None:
+def _set_mean_drift_metrics(
+    dataset: str,
+    drift_psi_warn_thresh: float,
+    drift_psi_alert_thresh: float,
+    drift_ks_warn_thresh: float,
+    drift_ks_alert_thresh: float,
+    avg_psi: float,
+    avg_ks: float,
+) -> None:
     drift_psi_warn_threshold.set(drift_psi_warn_thresh)
     drift_psi_alert_threshold.set(drift_psi_alert_thresh)
     drift_ks_warn_threshold.set(drift_ks_warn_thresh)
@@ -138,20 +146,22 @@ def _set_mean_drift_metrics(dataset: str, drift_psi_warn_thresh: float, drift_ps
     drift_psi_alert.set(1.0 if psi_alert else 0.0)
     drift_ks_alert.set(1.0 if ks_alert else 0.0)
 
-def reset_gauges():
+
+def reset_gauges() -> None:
     drift_checks_total.inc()
     drift_rmse_current.set(0)
     drift_rmse_baseline.set(0)
     drift_rmse_alert_threshold.set(0)
     drift_rmse_alert.set(0)
-    psi_mean_gauge.labels(dataset='train').set(0)
+    psi_mean_gauge.labels(dataset="train").set(0)
     drift_psi_warn_threshold.set(0)
     drift_psi_alert_threshold.set(0)
     drift_psi_alert.set(0)
-    ks_mean_gauge.labels(dataset='train').set(0)
+    ks_mean_gauge.labels(dataset="train").set(0)
     drift_ks_warn_threshold.set(0)
     drift_ks_alert_threshold.set(0)
     drift_ks_alert.set(0)
+
 
 @bentoml.service(resources={"cpu": "1", "memory": "1Gi"}, traffic={"timeout": 5, "concurrency": 50})
 class DriftDetectorService:
@@ -198,20 +208,20 @@ class DriftDetectorService:
         _set_rmse_metrics(current_rmse, self._baseline_rmse, warn_thr, alert_thr, bool(is_alert))
 
         unit_ids = {fb["engine_id"] for fb in feedback}
-        max_unit = max(unit_ids)
+        # max_unit = max(unit_ids)
 
         train_used = _training_subset(self.train_df)
         feats = _feature_columns(self.train_df)
 
-        train_up_to = _upto_max_unit_df(self.train_df, max_unit)
-        test_up_to = _upto_max_unit_df(self.test_df, max_unit)
+        # train_up_to = _upto_max_unit_df(self.train_df, max_unit)
+        # test_up_to = _upto_max_unit_df(self.test_df, max_unit)
 
-        train_recent = _recent_units_df(self.train_df, unit_ids)
+        # train_recent = _recent_units_df(self.train_df, unit_ids)
         test_recent = _recent_units_df(self.test_df, unit_ids)
 
-        #psi_train, ks_train = _compute_psi_ks(train_used, train_up_to, feats)
-        #psi_train, ks_train = _compute_psi_ks(train_used, train_recent, feats)
-        #psi_test, ks_test = _compute_psi_ks(train_used, test_up_to, feats)
+        # psi_train, ks_train = _compute_psi_ks(train_used, train_up_to, feats)
+        # psi_train, ks_train = _compute_psi_ks(train_used, train_recent, feats)
+        # psi_test, ks_test = _compute_psi_ks(train_used, test_up_to, feats)
         psi_test, ks_test = _compute_psi_ks(train_used, test_recent, feats)
 
         # drift_report_train = evaluate_drift(
@@ -222,14 +232,6 @@ class DriftDetectorService:
         #     thresholds=DEFAULT_THRESHOLDS,
         # )
 
-        drift_report_test = evaluate_drift(
-            psi_per_feature=psi_test,
-            ks_per_feature=ks_test,
-            current_rmse=current_rmse,
-            baseline_rmse=self._baseline_rmse,
-            thresholds=DEFAULT_THRESHOLDS,
-        )
-
         # _set_mean_drift_metrics(
         #     "train",
         #     DEFAULT_THRESHOLDS.psi_warn,
@@ -239,6 +241,15 @@ class DriftDetectorService:
         #     float(drift_report_train["psi"]["avg_psi"]),
         #     float(drift_report_train["ks"]["avg_ks"]),
         # )
+
+        drift_report_test = evaluate_drift(
+            psi_per_feature=psi_test,
+            ks_per_feature=ks_test,
+            current_rmse=current_rmse,
+            baseline_rmse=self._baseline_rmse,
+            thresholds=DEFAULT_THRESHOLDS,
+        )
+
         _set_mean_drift_metrics(
             "test",
             DEFAULT_THRESHOLDS.psi_warn,
