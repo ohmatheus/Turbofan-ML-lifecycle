@@ -125,6 +125,34 @@ services:
       retries: 3
       start_period: 30s
 
+  driftdetector-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.driftdetector
+    container_name: turbofan-driftdetector-service
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./src:/app/src:ro
+      - ./data/feedbacks:/app/data/feedbacks
+      - ./data:/app/data:ro
+      - ./.env:/app/.env:ro
+    environment:
+      - BENTOML_PORT=3003
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+    networks:
+      - turbofan-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3003/readyz" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
 
 volumes:
   prometheus_data:

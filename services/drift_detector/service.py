@@ -31,7 +31,6 @@ drift_rmse_alert = Gauge("rul_drift_rmse_alert", "1 if current RMSE is above ale
 psi_mean_gauge = Gauge(
     "rul_drift_psi_mean",
     "Mean PSI across all features",
-    labelnames=("dataset",),  # todo remove
 )
 drift_psi_warn_threshold = Gauge("rul_drift_psi_warn_threshold", "Warning PSI used for retraining")
 drift_psi_alert_threshold = Gauge("rul_drift_psi_alert_threshold", "Alert PSI used for retraining")
@@ -40,7 +39,6 @@ drift_psi_alert = Gauge("rul_drift_psi_alert", "1 if current PSI is above alert 
 ks_mean_gauge = Gauge(
     "rul_drift_ks_mean",
     "Mean KS statistic across all features",
-    labelnames=("dataset",),  # todo remove
 )
 drift_ks_warn_threshold = Gauge("rul_drift_ks_warn_threshold", "Warning PSI used for retraining")
 drift_ks_alert_threshold = Gauge("rul_drift_ks_alert_threshold", "Alert PSI used for retraining")
@@ -127,7 +125,6 @@ def _set_rmse_metrics(current: float, baseline: float, warn_thresh: float, alert
 
 
 def _set_mean_drift_metrics(
-    dataset: str,
     drift_psi_warn_thresh: float,
     drift_psi_alert_thresh: float,
     drift_ks_warn_thresh: float,
@@ -139,8 +136,8 @@ def _set_mean_drift_metrics(
     drift_psi_alert_threshold.set(drift_psi_alert_thresh)
     drift_ks_warn_threshold.set(drift_ks_warn_thresh)
     drift_ks_alert_threshold.set(drift_ks_alert_thresh)
-    psi_mean_gauge.labels(dataset=dataset).set(avg_psi)
-    ks_mean_gauge.labels(dataset=dataset).set(avg_ks)
+    psi_mean_gauge.set(avg_psi)
+    ks_mean_gauge.set(avg_ks)
     psi_alert = avg_psi > drift_psi_alert_thresh
     ks_alert = avg_ks > drift_ks_alert_thresh
     drift_psi_alert.set(1.0 if psi_alert else 0.0)
@@ -151,13 +148,14 @@ def reset_gauges() -> None:
     drift_checks_total.inc()
     drift_rmse_current.set(0)
     drift_rmse_baseline.set(0)
+    drift_rmse_warn_threshold.set(0)
     drift_rmse_alert_threshold.set(0)
     drift_rmse_alert.set(0)
-    psi_mean_gauge.labels(dataset="train").set(0)
+    psi_mean_gauge.set(0)
     drift_psi_warn_threshold.set(0)
     drift_psi_alert_threshold.set(0)
     drift_psi_alert.set(0)
-    ks_mean_gauge.labels(dataset="train").set(0)
+    ks_mean_gauge.set(0)
     drift_ks_warn_threshold.set(0)
     drift_ks_alert_threshold.set(0)
     drift_ks_alert.set(0)
@@ -251,7 +249,6 @@ class DriftDetectorService:
         )
 
         _set_mean_drift_metrics(
-            "test",
             DEFAULT_THRESHOLDS.psi_warn,
             DEFAULT_THRESHOLDS.psi_alert,
             DEFAULT_THRESHOLDS.ks_warn,
