@@ -107,10 +107,9 @@ class PredictionService:
                 status="success", model_version=self.model_bundle.metadata.version
             ).set_to_current_time()
         except FileNotFoundError as e:
-            print(f"Model file not found. Triggering retrain: {e}")
+            print(f"Model file not found. Need to trigger retrain: {e}")
             self.model_bundle = None
             self.expected_features = None
-            self._trigger_retrain()
             model_reload_counter.labels(status="missing", model_version="none").inc()
             model_reload_timestamp.labels(status="missing", model_version="none").set_to_current_time()
         except Exception as e:

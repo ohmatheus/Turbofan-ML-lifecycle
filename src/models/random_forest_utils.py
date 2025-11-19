@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+import time
 import matplotlib
 matplotlib.use("Agg")
 
@@ -31,7 +32,7 @@ pipeline = Pipeline(
             "rf",
             RandomForestRegressor(
                 n_estimators=500,
-                max_depth=None,
+                max_depth=20,
                 min_samples_split=5,
                 min_samples_leaf=2,
                 max_features="sqrt",
@@ -75,28 +76,40 @@ def input_example(df_train: pd.DataFrame) -> pd.DataFrame:
 
 # GridSearch instead of RandomSearch to gain time - optuna later?
 def fit_rf(df_train: pd.DataFrame, param_grid: dict | None = None) -> tuple[Pipeline, float | None]:
+    print("[fit_rf] entered", flush=True)
+    print(f"[fit_rf] df_train shape={df_train.shape}", flush=True)
+
     feature_cols = [col for col in df_train.columns if col not in EXCLUDE_COLS]
+    print(f"[fit_rf] n_features={len(feature_cols)}", flush=True)
 
     y_train = df_train["RUL"]
     x_train = df_train.drop(["time_cycles", "RUL"], axis=1)
-
     x_train_features = x_train[feature_cols]
+
+    print(f"[fit_rf] x_train_features shape={x_train_features.shape}", flush=True)
 
     best_model: Pipeline | None = None
     if param_grid is not None:
-        groups = x_train["unit_number"]  # GroupKfold - we split on engine id
+        groups = x_train["unit_number"]
         group_cv = GroupKFold(n_splits=5)
-        grid_search = GridSearchCV(pipeline, param_grid, cv=group_cv, scoring=rmse_scorer, n_jobs=-1, verbose=1)
+        print("[fit_rf] starting GridSearchCV", flush=True)
+        t0 = time.time()
+        grid_search = GridSearchCV(pipeline, param_grid, cv=group_cv, scoring=rmse_scorer, n_jobs=1, verbose=1)
         grid_search.fit(x_train_features, y_train, groups=groups)
+        print(f"[fit_rf] GridSearchCV finished in {time.time() - t0:.2f}s", flush=True)
 
         print(f"Best parameters: {grid_search.best_params_}")
         rmse = -grid_search.best_score_
-        print(f"Best CV RMSE: {rmse:.4f}")  # `-`: greater_is_better=False in scorer
+        print(f"Best CV RMSE: {rmse:.4f}")
         best_model = grid_search.best_estimator_
     else:
+        print("[fit_rf] starting pipeline.fit", flush=True)
+        t0 = time.time()
         best_model = pipeline.fit(x_train_features, y_train)
+        print(f"[fit_rf] pipeline.fit finished in {time.time() - t0:.2f}s", flush=True)
         rmse = None
 
+    print("[fit_rf] returning", flush=True)
     return best_model, rmse
 
 
@@ -137,5 +150,5 @@ def plot_rmse(y_test: np.ndarray, y_pred: np.ndarray, rmse: float) -> plt.Figure
     ax.set_title(f"Predictions vs Actual (RMSE: {rmse:.2f})")
     plt.tight_layout()
     plt.savefig(os.path.join(temp_folder, "RUL_predictions_vs_actual.png"), bbox_inches="tight")
-
+    plt.close(fig)
     return fig

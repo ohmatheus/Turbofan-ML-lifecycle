@@ -50,8 +50,8 @@ def load_model_bundle(filepath: str) -> ModelBundle:
         bundle: ModelBundle = joblib.load(filepath)
     except FileNotFoundError as e:
         raise FileNotFoundError(f"Model file not found: {filepath}") from e
-    print(f"Model bundle loaded from: {filepath}")
-    print(f"Model type: {bundle.metadata.model_type}")
-    print(f"Version: {bundle.metadata.version}")
-    print(f"Features: {bundle.get_n_features()}")
+    # print(f"Model bundle loaded from: {filepath}")
+    # print(f"Model type: {bundle.metadata.model_type}")
+    # print(f"Version: {bundle.metadata.version}")
+    # print(f"Features: {bundle.get_n_features()}")
     return bundle

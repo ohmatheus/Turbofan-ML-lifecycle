@@ -172,6 +172,8 @@ class DriftDetectorService:
         self.test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
         self._last_status = DriftStatus()
 
+        self.retraining_client = bentoml.SyncHTTPClient("http://host.docker.internal:3004") #todo use network names + make up dashboard
+
         if self._baseline_rmse is not None:
             drift_rmse_baseline.set(self._baseline_rmse)
 
@@ -206,7 +208,7 @@ class DriftDetectorService:
         _set_rmse_metrics(current_rmse, self._baseline_rmse, warn_thr, alert_thr, bool(is_alert))
 
         unit_ids = {fb["engine_id"] for fb in feedback}
-        # max_unit = max(unit_ids)
+        max_unit = max(unit_ids)
 
         train_used = _training_subset(self.train_df)
         feats = _feature_columns(self.train_df)
@@ -269,6 +271,19 @@ class DriftDetectorService:
             f"current_rmse={current_rmse:.4f}, baseline_rmse={self._baseline_rmse:.4f}, alert={bool(is_alert)}"
         )
 
+        if drift_report_test["should_retrain"]:
+            print("[DriftDetector] Retraining model")
+            # take the last higher unit_number used in predict, as a fraction of it's position in the total list of unit_number
+            unique_engines = sorted(self.train_df["unit_number"].unique())
+            if unique_engines:
+                # how many engines have id <= max_unit
+                count_le = sum(u <= max_unit for u in unique_engines)
+                fraction = count_le / len(unique_engines)
+            else:
+                fraction = 1.0
+
+            self.retraining_client.retrain(fraction=fraction)
+
     @bentoml.api
     def run_drift_check_now(self) -> dict[str, Any]:
         self._run_drift_check()
@@ -277,3 +292,8 @@ class DriftDetectorService:
     @bentoml.api
     def get_drift_status(self) -> dict[str, Any]:
         return self._last_status.model_dump()
+
+    @bentoml.on_shutdown
+    def cleanup(self) -> None:
+        if self.retraining_client:
+            self.retraining_client.close()

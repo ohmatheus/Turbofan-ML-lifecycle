@@ -58,7 +58,7 @@ def simulate_user(user_id: int, test_data: pd.DataFrame, application_start: floa
                 result: Mapping[str, Any] = {}
                 if config.SIMULATE_ERRORS and random.randint(1, 10) == 1:
                     result = prediction_client.predict(
-                        ""
+                        "some bad input"
                     )  # simulate 'bad_input' error, we could simulate other types of errors
                 else:
                     result = prediction_client.predict(data)
