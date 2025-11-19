@@ -1,6 +1,8 @@
 import random
 import threading
 import time
+
+from pathlib import Path
 from collections.abc import Hashable, Mapping
 from datetime import datetime
 from typing import Any
@@ -112,7 +114,6 @@ def continuous_predict() -> None:
     """Run continuous prediction simulation with multiple users"""
     test_last_rows = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
 
-    # Test if services are ready
     prediction_client = bentoml.SyncHTTPClient("http://localhost:3000")
     feedback_client = bentoml.SyncHTTPClient("http://localhost:3001")
     drift_detection_client = bentoml.SyncHTTPClient("http://localhost:3003")
@@ -136,7 +137,6 @@ def continuous_predict() -> None:
     )
     print("Press Ctrl+C to stop the simulation\n")
 
-    # Create a stop event for graceful shutdown
     stop_event = threading.Event()
 
     application_start: float = time.time()  # shared "timer start"
@@ -163,11 +163,44 @@ def continuous_predict() -> None:
         for thread in threads:
             thread.join(timeout=3)
 
+        #delete_all_files(ask_retrain=False)
         print("All users stopped.")
 
 
-def main() -> None:
+def delete_all_files(ask_retrain: bool = True) -> None:
     print(f"TEST ENV : {config.TEST_ENV}")
+    if not config.DELETE_MODEL_AT_DEMO_START:
+        return
+
+    model_file = (config.MODELS_PATH / "random_forest_model.joblib")
+    if model_file.exists():
+        try:
+            model_file.unlink()
+            print(f"Deleted existing model file: {model_file}")
+        except OSError as e:
+            print(f"Failed to delete model file {model_file}: {e}")
+
+    feedback_storage_path = Path(config.FEEDBACK_PATH / "rul_feedback.jsonl")
+    if feedback_storage_path.exists():
+        try:
+            feedback_storage_path.unlink()
+            print(f"Deleted feedback storage file: {feedback_storage_path}")
+        except OSError as e:
+            print(f"Failed to delete feedback storage file {feedback_storage_path}: {e}")
+
+    if ask_retrain:
+        retraining_client = bentoml.SyncHTTPClient("http://localhost:3004")
+        try:
+            if (resp := retraining_client.retrain()):
+                print(f"Retrain trigger status: {resp.get('status')}")
+        except Exception as e:
+            print(f"Failed to trigger retrain: {e}")
+        finally:
+            retraining_client.close()
+
+
+def main() -> None:
+    delete_all_files()
     continuous_predict()
 
 

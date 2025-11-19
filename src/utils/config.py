@@ -28,6 +28,7 @@ class TPMSettings(BaseSettings):
     PREDICTION_POOL_PER_USER: int = 30  # random count from 1-x number of rows sent to prediction
     NUM_USERS: int = 10
     SIMULATE_ERRORS: bool = False
+    DELETE_MODEL_AT_DEMO_START: bool = True
 
     DEMO_DURATION_MINUTES: int = 10  # will gradually increase from `DEMO_FIRST_TRAIN_SIZE` to 1.0 in X minutes
     DEMO_FIRST_TRAIN_SIZE: float = 0.1

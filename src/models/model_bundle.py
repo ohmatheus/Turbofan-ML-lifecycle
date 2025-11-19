@@ -46,7 +46,10 @@ def save_model_bundle(model: Pipeline, metadata: ModelMetadata, filepath: str) -
 
 
 def load_model_bundle(filepath: str) -> ModelBundle:
-    bundle: ModelBundle = joblib.load(filepath)
+    try:
+        bundle: ModelBundle = joblib.load(filepath)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Model file not found: {filepath}") from e
     print(f"Model bundle loaded from: {filepath}")
     print(f"Model type: {bundle.metadata.model_type}")
     print(f"Version: {bundle.metadata.version}")
