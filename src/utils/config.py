@@ -32,6 +32,7 @@ class TPMSettings(BaseSettings):
 
     DEMO_DURATION_MINUTES: int = 10  # will gradually increase from `DEMO_FIRST_TRAIN_SIZE` to 1.0 in X minutes
     DEMO_FIRST_TRAIN_SIZE: float = 0.1
+    DEMO_PERFORM_AUTOMATIC_RETRAINING: bool = True
 
 
 config = TPMSettings()

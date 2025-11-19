@@ -17,7 +17,6 @@ from src.drift.thresholds import DEFAULT_THRESHOLDS
 from src.models.random_forest_utils import EXCLUDE_COLS, rmse_score
 from src.utils.config import config
 
-TEMP_TRAIN_RATIO = 0.1
 DRIFT_CHECK_INTERVAL_SECONDS = 15
 
 
@@ -88,8 +87,8 @@ def _compute_rmse(feedback: list[dict[str, Any]]) -> float:
     return float(rmse_score(y_true, y_pred))
 
 
-def _training_subset(train_df: pd.DataFrame) -> pd.DataFrame:
-    size = int(len(train_df) * TEMP_TRAIN_RATIO)
+def _training_subset(train_df: pd.DataFrame, fraction: float) -> pd.DataFrame:
+    size = int(len(train_df) * fraction)
     return train_df.iloc[:size]
 
 
@@ -167,15 +166,12 @@ class DriftDetectorService:
         self.feedback_storage_path = Path(config.FEEDBACK_PATH / "rul_feedback.jsonl")
         self.feedback_storage_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self._baseline_rmse: float | None = getattr(config, "BASELINE_RMSE", None)
+        self._baseline_rmse: float | None = None
         self.train_df = pd.read_csv(config.READY_DATA_PATH / "train.csv", index_col=False)
         self.test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
         self._last_status = DriftStatus()
 
         self.retraining_client = bentoml.SyncHTTPClient("http://host.docker.internal:3004") #todo use network names + make up dashboard
-
-        if self._baseline_rmse is not None:
-            drift_rmse_baseline.set(self._baseline_rmse)
 
         self._start_background_loop()
 
@@ -198,9 +194,8 @@ class DriftDetectorService:
             return
 
         current_rmse = _compute_rmse(feedback)
-        if self._baseline_rmse is None:
-            self._baseline_rmse = float(current_rmse)
-            drift_rmse_baseline.set(self._baseline_rmse)
+        self._baseline_rmse = self.retraining_client.get_baseline_rmse()
+        drift_rmse_baseline.set(self._baseline_rmse)
 
         alert_thr = self._baseline_rmse * DEFAULT_THRESHOLDS.rmse_alert_factor
         warn_thr = self._baseline_rmse * DEFAULT_THRESHOLDS.rmse_warn_factor
@@ -210,37 +205,12 @@ class DriftDetectorService:
         unit_ids = {fb["engine_id"] for fb in feedback}
         max_unit = max(unit_ids)
 
-        train_used = _training_subset(self.train_df)
+        train_used = _training_subset(self.train_df, self.retraining_client.get_last_training_fraction())
         feats = _feature_columns(self.train_df)
 
-        # train_up_to = _upto_max_unit_df(self.train_df, max_unit)
-        # test_up_to = _upto_max_unit_df(self.test_df, max_unit)
-
-        # train_recent = _recent_units_df(self.train_df, unit_ids)
         test_recent = _recent_units_df(self.test_df, unit_ids)
 
-        # psi_train, ks_train = _compute_psi_ks(train_used, train_up_to, feats)
-        # psi_train, ks_train = _compute_psi_ks(train_used, train_recent, feats)
-        # psi_test, ks_test = _compute_psi_ks(train_used, test_up_to, feats)
         psi_test, ks_test = _compute_psi_ks(train_used, test_recent, feats)
-
-        # drift_report_train = evaluate_drift(
-        #     psi_per_feature=psi_train,
-        #     ks_per_feature=ks_train,
-        #     current_rmse=current_rmse,
-        #     baseline_rmse=self._baseline_rmse,
-        #     thresholds=DEFAULT_THRESHOLDS,
-        # )
-
-        # _set_mean_drift_metrics(
-        #     "train",
-        #     DEFAULT_THRESHOLDS.psi_warn,
-        #     DEFAULT_THRESHOLDS.psi_alert,
-        #     DEFAULT_THRESHOLDS.ks_warn,
-        #     DEFAULT_THRESHOLDS.ks_alert,
-        #     float(drift_report_train["psi"]["avg_psi"]),
-        #     float(drift_report_train["ks"]["avg_ks"]),
-        # )
 
         drift_report_test = evaluate_drift(
             psi_per_feature=psi_test,
@@ -271,7 +241,7 @@ class DriftDetectorService:
             f"current_rmse={current_rmse:.4f}, baseline_rmse={self._baseline_rmse:.4f}, alert={bool(is_alert)}"
         )
 
-        if drift_report_test["should_retrain"]:
+        if drift_report_test["should_retrain"] and config.DEMO_PERFORM_AUTOMATIC_RETRAINING:
             print("[DriftDetector] Retraining model")
             # take the last higher unit_number used in predict, as a fraction of it's position in the total list of unit_number
             unique_engines = sorted(self.train_df["unit_number"].unique())
