@@ -27,3 +27,10 @@ scrape_configs:
       #- targets: [ 'host.docker.internal:3003' ]
     scrape_interval: 5s
     metrics_path: '/metrics'
+
+  - job_name: 'retraining-api'
+    static_configs:
+      #- targets: [ 'retraining-service:3004' ]
+      - targets: [ 'host.docker.internal:3004' ]
+    scrape_interval: 5s
+    metrics_path: '/metrics'

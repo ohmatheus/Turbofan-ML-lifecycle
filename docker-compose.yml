@@ -145,6 +145,8 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
+      #retraining-service:
+      #  condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3003/readyz" ]

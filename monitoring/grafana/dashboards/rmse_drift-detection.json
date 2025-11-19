@@ -361,7 +361,9 @@
               "mode": "off"
             }
           },
+          "fieldMinMax": false,
           "mappings": [],
+          "max": 1.5,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -792,5 +794,5 @@
   "timezone": "browser",
   "title": "RMSE - Drift Detection",
   "uid": "ad5r62c",
-  "version": 2
+  "version": 7
 }
