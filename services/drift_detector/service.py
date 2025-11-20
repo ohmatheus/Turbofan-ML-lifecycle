@@ -137,8 +137,8 @@ def _set_mean_drift_metrics(
     drift_ks_alert_threshold.set(drift_ks_alert_thresh)
     psi_mean_gauge.set(avg_psi)
     ks_mean_gauge.set(avg_ks)
-    psi_alert = avg_psi > drift_psi_alert_thresh
-    ks_alert = avg_ks > drift_ks_alert_thresh
+    psi_alert = avg_psi > drift_psi_warn_thresh
+    ks_alert = avg_ks > drift_ks_warn_thresh
     drift_psi_alert.set(1.0 if psi_alert else 0.0)
     drift_ks_alert.set(1.0 if ks_alert else 0.0)
 

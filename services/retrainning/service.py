@@ -254,6 +254,7 @@ class RetrainingService:
         self.model_path: Path = config.MODELS_PATH
         retrain_last_model_rmse_baseline.set(0.0)
         retrain_last_training_fraction.set(0.0)
+        retrain_runs_total.inc()
 
     @bentoml.api
     def retrain(self, fraction: float | None = None) -> dict[str, Any]:

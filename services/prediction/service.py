@@ -119,7 +119,7 @@ class PredictionService:
             raise
 
     def _trigger_retrain(self) -> None:
-        client = bentoml.SyncHTTPClient("http://host.docker.internal:3004")
+        client = bentoml.SyncHTTPClient("http://host.docker.internal:3004") #todo
         try:
             resp = client.retrain()
             print(f"Retrain trigger status: {resp.get('status')}")

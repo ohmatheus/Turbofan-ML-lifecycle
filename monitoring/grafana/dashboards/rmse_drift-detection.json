@@ -20,16 +20,17 @@
         },
         "enable": true,
         "hide": false,
-        "iconColor": "yellow",
+        "iconColor": "purple",
         "name": "Model Reload",
         "tagKeys": "model_reload",
         "target": {
-          "expr": "changes(model_reload_timestamp_seconds{job=\"prediction-api\"}[10s]) > 0",
+          "expr": "increase(rul_retrain_runs_total[10s]) > 0",
           "interval": "0",
           "refId": "Anno"
         },
-        "textFormat": "{{model_version}}",
-        "titleFormat": "\"Model Reload\""
+        "textFormat": "",
+        "titleFormat": "\"Model Reload\"",
+        "useValueForTime": false
       }
     ]
   },
@@ -211,6 +212,18 @@
                 "value": 0
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "Model retrain"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              }
+            ]
           }
         ]
       },
@@ -304,11 +317,24 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "min without (pid) (\n    rul_drift_rmse_alert{job=\"driftdetector-api\"} * 10 > 0\n  )",
-          "hide": true,
+          "hide": false,
           "instant": false,
           "legendFormat": "Alert",
           "range": true,
           "refId": "Alert"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "expr": "(changes(retrain_model_version_info[20m]) > 0) * 1",
+          "hide": true,
+          "instant": false,
+          "legendFormat": "{{model_version}}",
+          "range": true,
+          "refId": "Model retrain"
         }
       ],
       "title": "RMSE last minute",
@@ -425,7 +451,7 @@
               },
               {
                 "id": "custom.fillOpacity",
-                "value": 19
+                "value": 38
               }
             ]
           },
@@ -534,8 +560,8 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min without (pid) (\n    rul_drift_ks_alert{job=\"driftdetector-api\"} > 0\n  )",
-          "hide": true,
+          "expr": "min without (pid) (\n    rul_drift_ks_alert{job=\"driftdetector-api\"} * 0.1 > 0\n  )",
+          "hide": false,
           "instant": false,
           "legendFormat": "Alert",
           "range": true,
@@ -657,7 +683,7 @@
               },
               {
                 "id": "custom.fillOpacity",
-                "value": 19
+                "value": 38
               }
             ]
           },
@@ -766,8 +792,8 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min without (pid) (\n    rul_drift_psi_alert{job=\"driftdetector-api\"} > 0\n  )",
-          "hide": true,
+          "expr": "min without (pid) (\n    rul_drift_psi_alert{job=\"driftdetector-api\"} * 0.1 > 0\n  )",
+          "hide": false,
           "instant": false,
           "legendFormat": "Alert",
           "range": true,
@@ -793,5 +819,5 @@
   "timezone": "browser",
   "title": "RMSE - Drift Detection",
   "uid": "ad5r62c",
-  "version": 7
+  "version": 9
 }
