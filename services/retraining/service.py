@@ -306,8 +306,3 @@ class RetrainingService:
     @bentoml.api
     def get_last_training_fraction(self) -> float:
         return float(retrain_last_training_fraction._value.get())
-
-
-# OMP_NUM_THREADS=1
-# OPENBLAS_NUM_THREADS=1
-# MKL_NUM_THREADS=1
