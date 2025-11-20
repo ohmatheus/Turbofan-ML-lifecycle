@@ -10,27 +10,23 @@ scrape_configs:
   - job_name: 'prediction-api'
     static_configs:
       - targets: ['prediction-service:3000']
-      #- targets: ['host.docker.internal:3000']
     scrape_interval: 5s
     metrics_path: '/metrics'
 
   - job_name: 'feedback-api'
     static_configs:
       - targets: ['feedback-service:3001']
-      #- targets: ['host.docker.internal:3001']
     scrape_interval: 5s
     metrics_path: '/metrics'
 
   - job_name: 'driftdetector-api'
     static_configs:
       - targets: [ 'driftdetector-service:3003' ]
-      #- targets: [ 'host.docker.internal:3003' ]
     scrape_interval: 5s
     metrics_path: '/metrics'
 
   - job_name: 'retraining-api'
     static_configs:
-      #- targets: [ 'retraining-service:3004' ]
-      - targets: [ 'host.docker.internal:3004' ]
+      - targets: [ 'retraining-service:3004' ]
     scrape_interval: 5s
     metrics_path: '/metrics'

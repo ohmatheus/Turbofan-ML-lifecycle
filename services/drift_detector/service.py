@@ -171,7 +171,7 @@ class DriftDetectorService:
         self.test_df = pd.read_csv(config.READY_DATA_PATH / "test_last_rows.csv", index_col=False)
         self._last_status = DriftStatus()
 
-        self.retraining_client = bentoml.SyncHTTPClient("http://host.docker.internal:3004") #todo use network names + make up dashboard
+        self.retraining_client = bentoml.SyncHTTPClient("http://retraining-service:3004")
 
         self._start_background_loop()
 

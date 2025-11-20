@@ -21,7 +21,7 @@ class TPMSettings(BaseSettings):
 
     TEST_ENV: str = "dev"
 
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"
+    MLFLOW_TRACKING_URI: str = "http://mlflow:5000"
     UID: int = 1000
     GID: int = 1000
 

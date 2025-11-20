@@ -59,7 +59,7 @@ class FeedbackService:
 
             # RMSE
             rmse = rmse_score(np.asarray([feedback.actual_rul]), np.asarray([feedback.predicted_rul]))
-            print(f"Test RMSE: {rmse:.2f}")
+            #print(f"Test RMSE: {rmse:.2f}") #todo create a proper logging setup (debug, warning, info, etc)
             feedback_rmse_histogram.observe(rmse)
 
             feedback_record = {"feedback_id": feedback_id, **feedback.model_dump()}
