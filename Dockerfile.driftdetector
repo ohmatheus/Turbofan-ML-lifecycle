@@ -25,14 +25,14 @@ COPY .env .env
 RUN mkdir -p /app/data/models /app/data/raw /app/data/processed /app/data/prepared /app/data/ready /tmp/prometheus
 
 # Expose port
-EXPOSE 3000
+EXPOSE 3003
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
 
-VOLUME ["/app/data/models"]
+VOLUME ["/app/data/feedbacks"]
 
 # Run BentoML service using uv
-CMD ["uv", "run", "--no-dev", "bentoml", "serve", "services.prediction.service:PredictionService", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["uv", "run", "--no-dev", "bentoml", "serve", "services.drift_detector.service:DriftDetectorService", "--host", "0.0.0.0", "--port", "3003"]

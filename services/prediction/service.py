@@ -85,17 +85,18 @@ class ModelReloadHandler(FileSystemEventHandler):
     traffic={"timeout": 5, "concurrency": 100, "max_concurrency": 200},
 )
 class PredictionService:
-    model_bundle: ModelBundle
+    model_bundle: ModelBundle | None
     observer: BaseObserver | None = None
+    expected_features: int | None = None
 
     def __init__(self) -> None:
         print(f"TEST ENV : {config.TEST_ENV}")
-        self.model_name = "full_sandbox"
+        self.model_name = "random_forest_model"
         self.model_path = config.MODELS_PATH
         self.model_file = self.model_path / f"{self.model_name}.joblib"
         self._model_lock = threading.RLock()
-        self._load_model()
         self._setup_file_watcher()
+        self._load_model()
 
     def _load_model(self) -> None:
         try:
@@ -106,13 +107,27 @@ class PredictionService:
             model_reload_timestamp.labels(
                 status="success", model_version=self.model_bundle.metadata.version
             ).set_to_current_time()
+        except FileNotFoundError as e:
+            print(f"Model file not found. Need to trigger retrain: {e}")
+            self.model_bundle = None
+            self.expected_features = None
+            model_reload_counter.labels(status="missing", model_version="none").inc()
+            model_reload_timestamp.labels(status="missing", model_version="none").set_to_current_time()
         except Exception as e:
             print(f"Failed to load model: {e}")
-            model_reload_counter.labels(status="error", model_version=self.model_bundle.metadata.version).inc()
-            model_reload_timestamp.labels(
-                status="error", model_version=self.model_bundle.metadata.version
-            ).set_to_current_time()
+            model_reload_counter.labels(status="error", model_version="unknown").inc()
+            model_reload_timestamp.labels(status="error", model_version="unknown").set_to_current_time()
             raise
+
+    def _trigger_retrain(self) -> None:
+        client = bentoml.SyncHTTPClient("http://retraining-service:3004")
+        try:
+            resp = client.retrain()
+            print(f"Retrain trigger status: {resp.get('status')}")
+        except Exception as e:
+            print(f"Failed to trigger retrain: {e}")
+        finally:
+            client.close()
 
     def _setup_file_watcher(self) -> None:
         try:
@@ -146,15 +161,16 @@ class PredictionService:
             if data is None:
                 raise BadInput("No data provided") from None
 
+            if self.model_bundle is None:
+                error_counter.labels(error_type="no_model").inc()
+                return ErrorOutput(error="No model available. Waiting for model training", type="no_model").model_dump()
+
             try:
                 validated_data = PredictionInput.model_validate(data)
             except ValidationError as e:
                 error_counter.labels(error_type="validation_error").inc()
                 print(f"Input validation error: {str(e)}")
                 raise BadInput(f"Input validation error: {str(e)}") from e
-
-            # print(f"Received data type: {type(validated_data)}")
-            # print(f"Data content: {data}")
 
             samples = validated_data.rows
 

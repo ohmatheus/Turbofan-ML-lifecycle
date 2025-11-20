@@ -20,16 +20,16 @@
         },
         "enable": true,
         "hide": false,
-        "iconColor": "semi-dark-yellow",
+        "iconColor": "purple",
         "mappings": {},
         "name": "Model Reload",
         "tagKeys": "model_reload",
         "target": {
-          "expr": "changes(model_reload_timestamp_seconds{job=\"prediction-api\"}[10s]) > 0",
+          "expr": "increase(rul_retrain_runs_total[10s]) > 0",
           "interval": "0",
           "refId": "Anno"
         },
-        "textFormat": "{{model_version}}",
+        "textFormat": "",
         "titleFormat": "\"Model Reload\"",
         "useValueForTime": false
       }
@@ -131,7 +131,7 @@
           },
           "editorMode": "builder",
           "expr": "rate(predictions_total{instance=\"prediction-service:3000\"}[30s])",
-          "legendFormat": "__auto",
+          "legendFormat": "model v{{model_version}}",
           "range": true,
           "refId": "A"
         }
@@ -338,5 +338,5 @@
   "timezone": "browser",
   "title": "Prediction overview",
   "uid": "ad2v2fs",
-  "version": 3
+  "version": 5
 }

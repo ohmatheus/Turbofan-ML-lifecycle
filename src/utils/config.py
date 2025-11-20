@@ -4,9 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_PATH = Path(__file__).parent.parent.parent
 
-# from dotenv import load_dotenv
-# load_dotenv()
-
 
 class TPMSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", frozen=True)
@@ -21,11 +18,18 @@ class TPMSettings(BaseSettings):
 
     TEST_ENV: str = "dev"
 
-    MLFLOW_TRACKING_URI: str = "http://localhost:5000"  # need to run `mlflow server/ui` to start server
+    MLFLOW_TRACKING_URI: str = "http://mlflow:5000"
+    UID: int = 1000
+    GID: int = 1000
 
-    CONTINUOUS_PREDICT_RANGE: int = 30  # random from 1-x number of rows sent to prediction
+    PREDICTION_POOL_PER_USER: int = 30  # random count from 1-x number of rows sent to prediction
     NUM_USERS: int = 10
     SIMULATE_ERRORS: bool = False
+    DELETE_MODEL_AT_DEMO_START: bool = True
+
+    DEMO_DURATION_MINUTES: int = 10  # will gradually increase from `DEMO_FIRST_TRAIN_SIZE` to 1.0 in X minutes
+    DEMO_FIRST_TRAIN_SIZE: float = 0.1
+    DEMO_PERFORM_AUTOMATIC_RETRAINING: bool = True
 
 
 config = TPMSettings()

@@ -17,7 +17,7 @@ class FeedbackInput(BaseModel):
     prediction_id: str
     predicted_rul: float
     actual_rul: float
-    engine_id: str
+    engine_id: int
     prediction_timestamp: str
     feedback_timestamp: str | None = None
     metadata: dict[str, Any] = {}
@@ -59,7 +59,6 @@ class FeedbackService:
 
             # RMSE
             rmse = rmse_score(np.asarray([feedback.actual_rul]), np.asarray([feedback.predicted_rul]))
-            print(f"Test RMSE: {rmse:.2f}")
             feedback_rmse_histogram.observe(rmse)
 
             feedback_record = {"feedback_id": feedback_id, **feedback.model_dump()}
