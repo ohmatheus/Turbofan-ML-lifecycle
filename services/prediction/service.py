@@ -87,6 +87,7 @@ class ModelReloadHandler(FileSystemEventHandler):
 class PredictionService:
     model_bundle: ModelBundle | None
     observer: BaseObserver | None = None
+    expected_features: int | None = None
 
     def __init__(self) -> None:
         print(f"TEST ENV : {config.TEST_ENV}")

@@ -1,7 +1,9 @@
 import os
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt

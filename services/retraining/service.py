@@ -1,30 +1,31 @@
-import json
-import time
-from pathlib import Path
-import threading
-from typing import Any
 import gc
+import os
+import threading
+import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-import os
+from typing import Any
+
 import bentoml
 import mlflow
-import pandas as pd
 import numpy as np
+import pandas as pd
 from prometheus_client import Counter, Gauge
+from sklearn.pipeline import Pipeline
 
 from src.models.model_bundle import ModelMetadata, load_model_bundle, save_model_bundle
 from src.models.random_forest_utils import EXCLUDE_COLS, Metrics, eval_rul, fit_rf, plot_rmse
 from src.utils.config import config
-
 
 RETRAIN_COOLDOWN_SECONDS = 30
 _last_retrain_ts: float | None = None
 
 LOCK_FILE = Path("/tmp/retrain.lock")
 
+
 @contextmanager
-def try_acquire_train_lock() -> bool:
+def try_acquire_train_lock() -> Iterator[bool]:
     fd = None
     try:
         # O_EXCL + O_CREAT -> fail if file already exists
@@ -54,8 +55,13 @@ def _start_cooldown(now: float) -> None:
 
 
 retrain_runs_total = Counter("rul_retrain_runs_total", "Total number of retraining runs")
-retrain_last_model_rmse_baseline = Gauge("retrain_last_model_rmse_baseline", "Last trained model RMSE baseline on test.")
-retrain_last_training_fraction = Gauge("retrain_last_training_fraction", "Last fraction of train_df used to train model.")
+retrain_last_model_rmse_baseline = Gauge(
+    "retrain_last_model_rmse_baseline", "Last trained model RMSE baseline on test."
+)
+retrain_last_training_fraction = Gauge(
+    "retrain_last_training_fraction", "Last fraction of train_df used to train model."
+)
+
 
 def _check_mlflow_server(uri: str, timeout: int = 5) -> bool:
     import requests
@@ -95,7 +101,7 @@ def _log_model_metadata(metadata: ModelMetadata) -> None:
     mlflow.log_dict(meta, "model_metadata.json")
 
 
-def _predict_and_log(model, feature_names: list[str], test_df: pd.DataFrame) -> Metrics:
+def _predict_and_log(model: Pipeline, feature_names: list[str], test_df: pd.DataFrame) -> Metrics:
     y_pred, y_test, metrics = eval_rul(model, test_df, feature_names)
     _ = plot_rmse(y_test, y_pred, metrics.rmse)
     mlflow.log_metric("test_rmse", metrics.rmse)
@@ -133,8 +139,6 @@ def _filter_by_fraction(
     train_filtered = train_df[train_df["unit_number"].isin(selected)]
     test_filtered = test_df[test_df["unit_number"].isin(selected)]
     return train_filtered, test_filtered
-
-
 
 
 def _run_retrain_job(model_name: str, model_path: Path, fraction: float | None) -> None:
@@ -243,6 +247,7 @@ def _run_retrain_job(model_name: str, model_path: Path, fraction: float | None) 
         except Exception as e:
             print(f"[retrain-bg] TOP-LEVEL EXCEPTION: {e!r}", flush=True)
 
+
 @bentoml.service(
     workers=1,
     resources={"cpu": "4", "memory": "4Gi"},
@@ -296,12 +301,13 @@ class RetrainingService:
 
     @bentoml.api
     def get_baseline_rmse(self) -> float:
-        return retrain_last_model_rmse_baseline._value.get()
+        return float(retrain_last_model_rmse_baseline._value.get())
 
     @bentoml.api
     def get_last_training_fraction(self) -> float:
-        return retrain_last_training_fraction._value.get()
+        return float(retrain_last_training_fraction._value.get())
 
-#OMP_NUM_THREADS=1
-#OPENBLAS_NUM_THREADS=1
-#MKL_NUM_THREADS=1
+
+# OMP_NUM_THREADS=1
+# OPENBLAS_NUM_THREADS=1
+# MKL_NUM_THREADS=1

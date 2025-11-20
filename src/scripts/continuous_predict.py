@@ -1,10 +1,9 @@
 import random
 import threading
 import time
-
-from pathlib import Path
 from collections.abc import Hashable, Mapping
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import bentoml
@@ -163,7 +162,7 @@ def continuous_predict() -> None:
         for thread in threads:
             thread.join(timeout=3)
 
-        #delete_all_files(ask_retrain=False)
+        # delete_all_files(ask_retrain=False)
         print("All users stopped.")
 
 
@@ -172,7 +171,7 @@ def delete_all_files(ask_retrain: bool = True) -> None:
     if not config.DELETE_MODEL_AT_DEMO_START:
         return
 
-    model_file = (config.MODELS_PATH / "random_forest_model.joblib")
+    model_file = config.MODELS_PATH / "random_forest_model.joblib"
     if model_file.exists():
         try:
             model_file.unlink()
@@ -191,7 +190,7 @@ def delete_all_files(ask_retrain: bool = True) -> None:
     if ask_retrain:
         retraining_client = bentoml.SyncHTTPClient("http://localhost:3004")
         try:
-            if (resp := retraining_client.retrain()):
+            if resp := retraining_client.retrain():
                 print(f"Retrain trigger status: {resp.get('status')}")
         except Exception as e:
             print(f"Failed to trigger retrain: {e}")
