@@ -4,10 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_PATH = Path(__file__).parent.parent.parent
 
-# from dotenv import load_dotenv
-# load_dotenv()
-
-
 class TPMSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", frozen=True)
 

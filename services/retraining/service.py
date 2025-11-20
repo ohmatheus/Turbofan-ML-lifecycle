@@ -266,11 +266,10 @@ class RetrainingService:
         """
         Fire-and-forget endpoint: schedule retraining in the background and return immediately.
         """
-        # Optionally: cheap pre-checks before starting thread
         if fraction is not None and (fraction <= 0 or fraction > 1):
             return {"status": "error", "message": "fraction must be in (0,1]"}
 
-        # quick cooldown check to avoid scheduling when obviously not allowed
+        # quick cooldown check to avoid scheduling too often
         if (rem := _cooldown_remaining(time.monotonic())) > 0:
             return {
                 "status": "error",
