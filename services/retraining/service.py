@@ -277,8 +277,6 @@ class RetrainingService:
                 "message": f"Retraining is cooling down. Try again in {int(rem)}s",
             }
 
-        # Try acquiring the lock just to avoid scheduling duplicate jobs at the same instant.
-        # We release it immediately; the background job will re-check and acquire for real.
         with try_acquire_train_lock() as got_lock:
             if not got_lock:
                 return {
