@@ -22,7 +22,7 @@ class TPMSettings(BaseSettings):
     UID: int = 1000
     GID: int = 1000
 
-    PREDICTION_POOL_PER_USER: int = 30  # random count from 1-x number of rows sent to prediction
+    PREDICTION_POOL_PER_USER: int = 200  # random count from 1-x number of rows sent to prediction
     NUM_USERS: int = 10
     SIMULATE_ERRORS: bool = False
     DELETE_MODEL_AT_DEMO_START: bool = True
