@@ -1,11 +1,9 @@
 
-version: '3.8'
-
-
 services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.18.0
     container_name: turbofan-mlflow
+    user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "5000:5000"
     volumes:
@@ -16,7 +14,8 @@ services:
       --host 0.0.0.0
       --port 5000
       --backend-store-uri file:///mlflow/mlruns
-      --default-artifact-root file:///mlflow/mlartifacts
+      --serve-artifacts
+      --artifacts-destination /mlflow/mlartifacts
     networks:
       - turbofan-network
     restart: unless-stopped
@@ -78,7 +77,7 @@ services:
       - "3000:3000"
     volumes:
       - ./src:/app/src:ro
-      - ./models:/app/models:ro
+      - ./data/models:/app/data/models:ro
       - ./data:/app/data:ro
       - ./.env:/app/.env:ro
     environment:
@@ -126,6 +125,63 @@ services:
       retries: 3
       start_period: 30s
 
+  driftdetector-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.driftdetector
+    container_name: turbofan-driftdetector-service
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./src:/app/src:ro
+      - ./data/feedbacks:/app/data/feedbacks
+      - ./data:/app/data:ro
+      - ./.env:/app/.env:ro
+    environment:
+      - BENTOML_PORT=3003
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+    networks:
+      - turbofan-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      retraining-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3003/readyz" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  retraining-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.retraining
+    container_name: turbofan-retraining-service
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./src:/app/src:ro
+      - ./data/models:/app/data/models
+      - ./data:/app/data:ro
+      - ./.env:/app/.env:ro
+    environment:
+      - BENTOML_PORT=3004
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+    networks:
+      - turbofan-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3004/readyz" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   prometheus_data:
