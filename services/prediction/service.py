@@ -172,9 +172,6 @@ class PredictionService:
                 print(f"Input validation error: {str(e)}")
                 raise BadInput(f"Input validation error: {str(e)}") from e
 
-            # print(f"Received data type: {type(validated_data)}")
-            # print(f"Data content: {data}")
-
             samples = validated_data.rows
 
             if not samples:

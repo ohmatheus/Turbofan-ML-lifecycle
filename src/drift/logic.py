@@ -6,20 +6,14 @@ import pandas as pd
 from src.drift.thresholds import DriftThresholds
 
 
-# slice_baseline_and_current with train_df, trained_unit_ids, new_units.
-# new_units = recent_test_units - trained_unit_ids.
-# OR new_units = recent_test_units - trained_unit_ids.
 def slice_baseline_and_current(
     train_df: pd.DataFrame,
-    test_df: pd.DataFrame,
     trained_unit_ids: list[int],
     new_units: list[int],
     feature_cols: list[str],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     baseline_df = train_df[train_df["unit_id"].isin(trained_unit_ids)][feature_cols]
     current_df = train_df[train_df["unit_id"].isin(new_units)][feature_cols]
-    # OR
-    # current_df = test_df[test_df["unit_id"].isin(new_units)][feature_cols]
 
     return baseline_df, current_df
 

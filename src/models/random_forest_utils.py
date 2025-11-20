@@ -117,10 +117,6 @@ def fit_rf(df_train: pd.DataFrame, param_grid: dict | None = None) -> tuple[Pipe
 
 # Prepare test data - only last row per engine unit for RUL prediction
 def eval_rul(model: Pipeline, df_test: pd.DataFrame, features: list[str]) -> tuple[np.ndarray, np.ndarray, Metrics]:
-    # feature_cols = [col for col in df_test.columns if col not in EXCLUDE_COLS]
-    # assert set(feature_cols) == set(
-    #     features), f"feature_cols and features must be the same. feature_cols: {feature_cols}, features: {features}"
-
     x_test = df_test[features]
     y_test = df_test["RUL"]
 

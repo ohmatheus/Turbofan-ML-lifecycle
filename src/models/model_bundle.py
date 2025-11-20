@@ -14,7 +14,6 @@ class ModelMetadata:
     target: str = "rul"
     version: str = "0.0"
     test_rmse: float = 0.0
-    # nb_first_rows_used_for_training: int = 0
 
 
 class ModelBundle:

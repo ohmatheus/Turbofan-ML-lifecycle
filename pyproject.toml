@@ -91,7 +91,6 @@ exclude = [".*\\.ipynb$"]
 files = [
     "src",
     "services",
-    "simulation",
 ]
 plugins = [
     "pydantic.mypy",
