@@ -144,7 +144,7 @@ python -m pip install uv && uv sync
 - Get token: https://www.kaggle.com/settings → Create New Token → save to `~/.kaggle/kaggle.json`
 - This download data, prepare it, and make feature engineering (mandatory):
 ```bash
-uv run initialize #
+uv run initialize
 ```
 5) Start the stack (build all images)
 ```bash
@@ -155,7 +155,7 @@ Dashboards:
 - [Grafana Drift Dashboard](http://localhost:3002/d/ad5r62c/rmse-drift-detection?orgId=1&from=now-10m&to=now&timezone=browser&refresh=5s) (anonymous access enabled locally)
 
 
-Then, in another terminal, run the demo script:
+Then, wait for all services to be up (see grafana 'Overview dashboard') and in another terminal, run the demo script:
 ```bash
 source .venv/bin/activate && uv run continuous
 ```
