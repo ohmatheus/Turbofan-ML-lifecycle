@@ -1,5 +1,5 @@
 [project]
-name = "turbofan-predictive-maintenance"
+name = "Turbofan-ML-lifecycle"
 version = "0.1.0"
 description = "Turbofan predictive maintenance experimentation and utilities"
 authors = [

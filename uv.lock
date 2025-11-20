@@ -2953,7 +2953,7 @@ wheels = [
 ]
 
 [[package]]
-name = "turbofan-predictive-maintenance"
+name = "turbofan-ml-lifecycle"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
