@@ -15,39 +15,61 @@ This repository implements a portfolio Machine Learning project for predictive m
 ## System Architecture
 
 ```
-+-------------------+      +--------------------+      +-------------------+
-|  Data & Features  | ---> |  Model Training &  | ---> |   Model Bundle    |
-| (download_raw_*)  |      |   Packaging (RF)   |      | (data/models/*.joblib)
-+---------+---------+      +----------+---------+      +----------+--------+
-          |                             |                          |
-          |                             |                          v
-          |                             |                +-------------------+
-          |                             +--------------> |  Prediction API   |
-          |                                              | (BentoML, :3000)  |
-          |                                              +----------+--------+
-          |                                                         |
-          |                                                   predictions
-          |                                                         v
-          |                                              +----------+--------+
-          |                                              |  Feedback API     |
-          |                                              | (BentoML, :3001)  |
-          |                                              +----------+--------+
-          |                                                         |
-          |                                                feedback JSONL
-          v                                                         v
-+---------+---------+      drift signals      +---------------------+--------+
-| Monitoring:       | <--------------------- | Drift Detector (3003)        |
-| Prometheus (9090) | ---------------------> | triggers retraining if alert |
-| Grafana (3002)    | metrics & dashboards   +-----------+------------------+
-+-------------------+                                     |
-                                                         retrain
-                                                          v
-                                              +-----------+-----------+
-                                              | Retraining Service    |
-                                              | (BentoML, :3004)      |
-                                              +-----------------------+
-
-[Run tracking & artifacts logged to MLflow (5000); Prediction API -> file watcher for new models.]
+                         +-------------------------------------+
+                         |   Demo Traffic / Users             |
+                         |   (continuous_predict.py)          |
+                         +----------------+--------------------+
+                                          |
+                              HTTP /predict requests
+                                          |
+                         +----------------v--------------------+
+                         |                                     |
+                         |  Prediction API (BentoML :3000)     |<-----------
+                         |  - serves /predict                  |            |
+                         |  - filesystem watcher on            |            |
+                         |    models/*.joblib                  |            |
+                         |  - hot-reloads model                |            |
+                         |                                     |            |
+                         +----------------+--------------------+            |
+                                          |                                 |
+                               RUL predictions (JSON)                       |
+                                          |                                 |
+                                          |  (demo script only)             |
+                                          v                                 |
+                                 +--------+--------+                        |
+                                 |  Feedback API   |                        |
+                                 | (BentoML :3001) |                        |
+                                 +--------+--------+              (hot-reload new model)    
+                                          |                                 |
+                           append-only feedback (JSONL lines)               |
+                                          v                                 |
+                               +----------+-----------+                     |
+                               |  Feedback Store      |                     |
+                               |  rul_feedback.jsonl  |                     |
+                               +----------+-----------+                     |
+                                          |                                 |
+                           continuous windowed reads                        |
+                                          v                                 |
+                                          +-------------------------+       |
+                        drift & metrics   | Drift Detector Service  |       |
++-------------------+ <------------------- | (BentoML :3003)        |       |
+| Monitoring        | ------------------>  | - reads JSONL feedback |       |
+| - Prometheus 9090 |   scrape metrics     | - RMSE / PSI / KS      |       |
+| - Grafana   3002  |                      | - decides retrain      |       |
++-------------------+                      +-----------+------------+       |
+                                                       |                    |
+                                          HTTP /retrain (auto)              |
+                                                       v                    |
+                                           +-----------+------------+       |
+                                           | Retraining Service     |       |
+                                           | (BentoML :3004)        |       |
+                                           | - trains RF model      |>------
+                                           | - logs to MLflow:5000  |
+                                           | - writes model bundle  |
+                                           |   models/*.joblib      |
+                                           +-----------+------------+
+                                                       |
+                                        new/updated model bundle
 ```
 
 - Training/experimentation: Python scripts with MLflow tracking; model saved as a single bundle file with metadata.
