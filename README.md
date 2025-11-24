@@ -194,7 +194,7 @@ source .venv/bin/activate && uv run continuous
 ```
 From here, the demo takes 10 minutes to complete.  
 
-You can at any point stop the demo script with `Ctrl+C` in the terminal running it, and then stop the stack with `docker compose down`.
+After that, you can stop the demo script with `Ctrl+C` in the terminal running it, and then stop the stack with `docker compose down`.
 
 Other links:
 - Prometheus: http://localhost:9090
