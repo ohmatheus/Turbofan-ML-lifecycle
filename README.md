@@ -13,11 +13,12 @@ This repository implements a portfolio Machine Learning project for predictive m
 
 
 ## System Architecture
+(Yes. This graph has been, for the most part, generated.)
 
 ```
                          +-------------------------------------+
-                         |   Demo Traffic / Users             |
-                         |   (continuous_predict.py)          |
+                         |   Demo / Users                      |
+                         |   (continuous_predict.py)           |
                          +----------------+--------------------+
                                           |
                               HTTP /predict requests
@@ -34,7 +35,7 @@ This repository implements a portfolio Machine Learning project for predictive m
                                           |                                 |
                                RUL predictions (JSON)                       |
                                           |                                 |
-                                          |  (demo script only)             |
+                                          |                                 |
                                           v                                 |
                                  +--------+--------+                        |
                                  |  Feedback API   |                        |
@@ -55,7 +56,7 @@ This repository implements a portfolio Machine Learning project for predictive m
 +-------------------+ <------------------- | (BentoML :3003)        |       |
 | Monitoring        | ------------------>  | - reads JSONL feedback |       |
 | - Prometheus 9090 |   scrape metrics     | - RMSE / PSI / KS      |       |
-| - Grafana   3002  |                      | - decides retrain      |       |
+| - Grafana   3002  |                      | - triggers retrain     |       |
 +-------------------+                      +-----------+------------+       |
                                                        |                    |
                                           HTTP /retrain (auto)              |
@@ -72,11 +73,11 @@ This repository implements a portfolio Machine Learning project for predictive m
                                         new/updated model bundle
 ```
 
-- Training/experimentation: Python scripts with MLflow tracking; model saved as a single bundle file with metadata.
+- Demo serves as simulating users calling prediction endpoints concurrently.
 - Serving: BentoML microservices for prediction, feedback, drift detection, and retraining.
-- Feedback: JSONL storage to close the loop and compute basic accuracy stats.
+- Feedback: JSONL storage (in a file to simplify) and compute basic RUL stats.
 - Monitoring: Prometheus metrics from services + Grafana dashboards.
-- Drift detection: PSI/KS style feature drift metrics and RMSE deltas; can trigger retraining.
+- Drift detection: PSI/KS style feature drift metrics and RMSE deltas with model baseline; can trigger retraining.
 - Local-first: designed to run on a single machine via Docker Compose.
 
 ## Tech Stack
@@ -92,9 +93,9 @@ This repository implements a portfolio Machine Learning project for predictive m
 ### Overview
 <img src="images/overview_dashboard.png" alt="Overview Monitoring" width="800">  
 
-Shows health of each services.  
-The number of predictions made, and errors (generated from bad input in the demo script).  
-Each different color is a different trainned model.  
+Shows health of each service.  
+The number of predictions made and errors (generated from bad input in the demo script).  
+Each different color is a different trained model.  
 Vertical purple lines are retraining triggers. 
 
 
@@ -127,8 +128,8 @@ Source: https://www.kaggle.com/datasets/behrad3d/nasa-cmaps
 ![turbofan](images/Turbofan-operation-lbp.png)
 - Features: per-engine time-based features on multiple cycles (3 settings, 21 sensors).
 - Already delivered with a train split, and a test split. We have ground truth RUL for both of them.
-- Model: Random Forest (scikit-learn) for speed/simplicity and quick iterations. Model bundles and feature names are tracked and hot-reloaded by the prediction service.
-- Results: reasonable RUL prediction performance for demonstrating lifecycle behaviors. The emphasis is on the system performances rather than SOTA metrics. (for this portfolio project)
+- Model: Random Forest for speed/simplicity and quick iterations. Model bundles and feature names are tracked and hot-reloaded by the prediction service.
+- Results: RUL prediction performance for demonstrating lifecycle behaviors. The emphasis is on the system performances rather than SOTA metrics. (for this portfolio project)
 - Future: explore LSTM/GRU or other sequence models for improved sequence modeling.
 
 Current performances with RandomForest, simple hyperparameters, all FE, and training and all train data and test on all test data:   
@@ -146,7 +147,7 @@ Current performances with RandomForest, simple hyperparameters, all FE, and trai
 
 ## Quickstart
 
-Prereqs: macOS/Linux, **Python 3.13+**, Docker, Kaggle API token, and a populated `.env` file.
+Prereqs: macOS/Linux, **Python 3.13+**, Docker, Kaggle Legacy API Key (.json), and a populated `.env` file.
 
 1) Clone and enter the repo
 ```bash
@@ -162,12 +163,22 @@ cp .env.example .env
 python -m venv .venv && source .venv/bin/activate
 python -m pip install uv && uv sync
 ```
-4) Configure Kaggle token, then download & prepare data  
-- Get token: https://www.kaggle.com/settings → Create New Token → save to `~/.kaggle/kaggle.json`
-- This download data, prepare it, and make feature engineering (mandatory):
-```bash
-uv run initialize
-```
+4) Configure Kaggle "Legacy API Key". Download & prepare data:  
+   - How to get token (while connected to your kaggle account): 
+     - https://www.kaggle.com/settings    
+     - **Create Legacy API Key** → this will automatically download a `kaggle.json` file.
+     - save it to `~/.kaggle/kaggle.json`
+   - Then run:
+        ```bash
+        uv run initialize
+        ```
+        This download data, prepare it, and make feature engineering (mandatory).
+>If, for any reason, kaggle authentification fails, just paste:   
+> ```json
+> {"username": "your_kaggle_username","key": "your_api_key_here"}
+> ```
+> in your `~/.kaggle/kaggle.json` file.
+
 5) Start the stack (build all images)
 ```bash
 docker compose up --build
