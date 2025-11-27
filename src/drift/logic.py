@@ -53,7 +53,6 @@ def evaluate_drift(
     has_psi_alert = avg_psi >= thresholds.psi_warn
     has_ks_alert = avg_ks >= thresholds.ks_warn
 
-    # --- RMSE drift ---
     rmse_warn = current_rmse > baseline_rmse * thresholds.rmse_warn_factor
     rmse_alert = current_rmse > baseline_rmse * thresholds.rmse_alert_factor
 
