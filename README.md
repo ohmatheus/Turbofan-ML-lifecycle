@@ -13,64 +13,53 @@ This repository implements a portfolio Machine Learning project for predictive m
 
 
 ## System Architecture
-(Yes. This graph has been, for the most part, generated.)
 
-```
-                         +-------------------------------------+
-                         |   Demo / Users                      |
-                         |   (continuous_predict.py)           |
-                         +----------------+--------------------+
-                                          |
-                              HTTP /predict requests
-                                          |
-                         +----------------v--------------------+
-                         |                                     |
-                         |  Prediction API (BentoML :3000)     |<-----------
-                         |  - serves /predict                  |            |
-                         |  - filesystem watcher on            |            |
-                         |    models/*.joblib                  |            |
-                         |  - hot-reloads model                |            |
-                         |                                     |            |
-                         +----------------+--------------------+            |
-                                          |                                 |
-                               RUL predictions (JSON)                       |
-                                          |                                 |
-                                          |                                 |
-                                          v                                 |
-                                 +--------+--------+                        |
-                                 |  Feedback API   |                        |
-                                 | (BentoML :3001) |                        |
-                                 +--------+--------+              (hot-reload new model)    
-                                          |                                 |
-                           append-only feedback (JSONL lines)               |
-                                          v                                 |
-                               +----------+-----------+                     |
-                               |  Feedback Store      |                     |
-                               |  rul_feedback.jsonl  |                     |
-                               +----------+-----------+                     |
-                                          |                                 |
-                           continuous windowed reads                        |
-                                          v                                 |
-                                          +-------------------------+       |
-                        drift & metrics   | Drift Detector Service  |       |
-+-------------------+ <------------------- | (BentoML :3003)        |       |
-| Monitoring        | ------------------>  | - reads JSONL feedback |       |
-| - Prometheus 9090 |   scrape metrics     | - RMSE / PSI / KS      |       |
-| - Grafana   3002  |                      | - triggers retrain     |       |
-+-------------------+                      +-----------+------------+       |
-                                                       |                    |
-                                          HTTP /retrain (auto)              |
-                                                       v                    |
-                                           +-----------+------------+       |
-                                           | Retraining Service     |       |
-                                           | (BentoML :3004)        |       |
-                                           | - trains RF model      |>------
-                                           | - logs to MLflow:5000  |
-                                           | - writes model bundle  |
-                                           |   models/*.joblib      |
-                                           +-----------+------------+
-                                                       |
-                                        new/updated model bundle
+
+```mermaid
+flowchart TD
+    %% User Layer
+    Demo[Demo Users<br/>continuous_predict.py]
+    
+    %% API Services Layer
+    PredAPI[Prediction API<br/>:3000]
+    FeedAPI[Feedback API<br/>:3001]
+    DriftAPI[Drift Detection<br/>:3003]
+    RetrainAPI[Retraining Service<br/>:3004]
+    
+    %% Storage Layer
+    FeedStore[(Feedback Store<br/>rul_feedback.jsonl)]
+    ModelStore[(Model Store<br/>models/*.joblib)]
+    
+    %% External Services
+    Monitor[Prometheus :9090<br/>Grafana :3002]
+    MLflow[MLflow :5000]
+    
+    %% Main Flow
+    Demo -->|HTTP requests| PredAPI
+    PredAPI -->|predictions| FeedAPI
+    FeedAPI --> FeedStore
+    FeedStore --> DriftAPI
+    DriftAPI -->|trigger| RetrainAPI
+    RetrainAPI --> ModelStore
+    ModelStore -.->|hot reload| PredAPI
+    
+    %% Monitoring
+    DriftAPI -.-> Monitor
+    Monitor -.-> DriftAPI
+    
+    %% Experiment Tracking
+    RetrainAPI --> MLflow
+    
+    %% Styling - Much Stronger Colors
+    classDef service fill:#1976d2,stroke:#0d47a1,color:#ffffff
+    classDef storage fill:#f57c00,stroke:#e65100,color:#ffffff
+    classDef external fill:#7b1fa2,stroke:#4a148c,color:#ffffff
+    classDef user fill:#388e3c,stroke:#1b5e20,color:#ffffff
+    
+    class Demo user
+    class PredAPI,FeedAPI,DriftAPI,RetrainAPI service
+    class FeedStore,ModelStore storage
+    class Monitor,MLflow external
 ```
 
 - Demo serves as simulating users calling prediction endpoints concurrently.
