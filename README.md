@@ -62,7 +62,6 @@ flowchart TD
     class Monitor,MLflow external
 ```
 
-
 - Demo serves as simulating users calling prediction endpoints concurrently.
 - Serving: BentoML microservices for prediction, feedback, drift detection, and retraining.
 - Feedback: JSONL storage (in a file to simplify) and compute basic RUL stats.
